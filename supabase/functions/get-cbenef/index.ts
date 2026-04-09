@@ -30,6 +30,7 @@ interface CbenefRule {
   priority: number;
   rule_version_id: string | null;
   is_active: boolean;
+  data_origin: string;
   updated_at: string;
   created_at: string;
 }
@@ -185,7 +186,11 @@ Deno.serve(async (req) => {
     }
 
     // Sort by keyword score then priority
+    // Sort: imported > seed, then keyword score, then priority
     scored.sort((a, b) => {
+      const originA = a.rule.data_origin === "imported" ? 1 : 0;
+      const originB = b.rule.data_origin === "imported" ? 1 : 0;
+      if (originB !== originA) return originB - originA;
       if (b.kwScore !== a.kwScore) return b.kwScore - a.kwScore;
       return b.rule.priority - a.rule.priority;
     });
@@ -304,6 +309,7 @@ Deno.serve(async (req) => {
         keyword_match_count: bestKwScore,
         used_informed_cst: usedInformedCst,
         auto_suggested_cst: autoSuggestedCst,
+        data_origin: bestRule.data_origin,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
