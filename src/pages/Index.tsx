@@ -1,13 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConsultaForm, type ConsultaFormData } from "@/components/ConsultaForm";
 import { ResultadoCard, type CbenefResult } from "@/components/ResultadoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { FileText } from "lucide-react";
+import { FileText, Clock } from "lucide-react";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<CbenefResult | null>(null);
+  const [baseInfo, setBaseInfo] = useState<{ version: string; date: string } | null>(null);
+
+  useEffect(() => {
+    // Fetch latest rule version for footer indicator
+    supabase
+      .from("cbenef_rules")
+      .select("updated_at")
+      .eq("is_active", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setBaseInfo({
+            version: "MVP Seed v1",
+            date: new Date(data[0].updated_at).toLocaleDateString("pt-BR"),
+          });
+        }
+      });
+  }, []);
 
   const handleConsulta = async (data: ConsultaFormData) => {
     setIsLoading(true);
@@ -16,11 +35,11 @@ const Index = () => {
     try {
       const { data: response, error } = await supabase.functions.invoke("get-cbenef", {
         body: {
-          ean: data.ean,
-          descricao: data.descricao,
+          ean: data.ean || undefined,
+          descricao: data.descricao || undefined,
           ncm: data.ncm,
-          cst_icms: data.cst_icms,
-          marca: data.marca,
+          cst_icms: data.cst_icms || undefined,
+          marca: data.marca || undefined,
         },
       });
 
@@ -39,7 +58,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border bg-card">
         <div className="container max-w-4xl mx-auto py-4 px-4 flex items-center gap-3">
           <div className="rounded-lg bg-primary p-2">
@@ -52,15 +71,23 @@ const Index = () => {
         </div>
       </header>
 
-      <main className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
+      <main className="container max-w-4xl mx-auto py-8 px-4 space-y-6 flex-1">
         <ConsultaForm onSubmit={handleConsulta} isLoading={isLoading} />
         {result && <ResultadoCard result={result} />}
       </main>
 
-      <footer className="border-t border-border mt-auto">
-        <div className="container max-w-4xl mx-auto py-4 px-4 text-center text-xs text-muted-foreground">
-          Este serviço oferece sugestões com base nas regras vigentes do Estado de São Paulo. 
-          Consulte sempre a legislação oficial antes de tomar decisões fiscais.
+      <footer className="border-t border-border">
+        <div className="container max-w-4xl mx-auto py-4 px-4 text-center text-xs text-muted-foreground space-y-1">
+          <p>
+            Este serviço oferece sugestões com base nas regras vigentes do Estado de São Paulo.
+            Consulte sempre a legislação oficial antes de tomar decisões fiscais.
+          </p>
+          {baseInfo && (
+            <p className="flex items-center justify-center gap-1.5 opacity-60">
+              <Clock className="w-3 h-3" />
+              Base: {baseInfo.version} · Atualizada em {baseInfo.date}
+            </p>
+          )}
         </div>
       </footer>
     </div>

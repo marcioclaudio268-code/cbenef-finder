@@ -9,8 +9,28 @@ interface RequestBody {
   ean?: string;
   descricao?: string;
   ncm: string;
-  cst_icms: string;
+  cst_icms?: string;
   marca?: string;
+}
+
+interface CbenefRule {
+  id: string;
+  cbenef_code: string;
+  ncm: string;
+  cst_icms: string | null;
+  suggested_cst_icms: string | null;
+  description: string | null;
+  keywords: string[] | null;
+  legal_basis: string | null;
+  legal_url: string | null;
+  legal_basis_name: string | null;
+  legal_basis_summary: string | null;
+  application_context: string | null;
+  priority: number;
+  rule_version_id: string | null;
+  is_active: boolean;
+  updated_at: string;
+  created_at: string;
 }
 
 Deno.serve(async (req) => {
@@ -21,9 +41,9 @@ Deno.serve(async (req) => {
   try {
     const body: RequestBody = await req.json();
 
-    if (!body.ncm || !body.cst_icms) {
+    if (!body.ncm) {
       return new Response(
-        JSON.stringify({ error: "NCM e CST ICMS são obrigatórios" }),
+        JSON.stringify({ error: "NCM é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -35,9 +55,11 @@ Deno.serve(async (req) => {
 
     // Normalize inputs
     const ncm = body.ncm.replace(/[^0-9]/g, "");
-    const cstIcms = body.cst_icms.replace(/[^0-9]/g, "");
+    const informedCst = body.cst_icms ? body.cst_icms.replace(/[^0-9]/g, "") : null;
     const descricao = (body.descricao || "").toLowerCase().trim();
+    const marca = (body.marca || "").toLowerCase().trim();
     const keywords = descricao.split(/\s+/).filter((w) => w.length > 2);
+    if (marca.length > 2) keywords.push(marca);
 
     // 1. Exact NCM match
     let { data: rules } = await supabase
@@ -51,7 +73,7 @@ Deno.serve(async (req) => {
 
     // 2. Prefix match if no exact
     if (!rules || rules.length === 0) {
-      const prefixes = [ncm.slice(0, 6), ncm.slice(0, 4)];
+      const prefixes = [ncm.slice(0, 6), ncm.slice(0, 4), ncm.slice(0, 2)];
       for (const prefix of prefixes) {
         const { data } = await supabase
           .from("cbenef_rules")
@@ -67,14 +89,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // No rules found at all
+    // No rules found
     if (!rules || rules.length === 0) {
-      // Log query
       await supabase.from("query_logs").insert({
         ean: body.ean || null,
         description: body.descricao || null,
         ncm: ncm,
-        cst_icms: cstIcms,
+        cst_icms: informedCst || null,
         brand: body.marca || null,
         suggested_cbenef: null,
         confidence_score: 0,
@@ -84,69 +105,144 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           cbenef_code: "",
+          informed_cst_icms: informedCst || "",
+          suggested_cst_icms: "",
+          final_cst_icms: "",
+          cst_source: "none",
           confidence_score: 0,
-          confidence_level: "none",
-          rule_description: "Nenhuma regra encontrada para o NCM informado.",
-          cst_considered: cstIcms,
-          ncm_considered: ncm,
-          legal_basis: "",
-          legal_url: null,
-          matched_by: "none",
-          base_date: new Date().toISOString(),
+          confidence_level: "low",
+          matched_rule_id: null,
+          application_context: "Operação interna — Estado de São Paulo",
+          legal_basis_name: "",
+          legal_basis_summary: "Nenhuma regra encontrada para o NCM informado.",
+          legal_basis_url: null,
+          rule_version: null,
+          last_updated_at: new Date().toISOString(),
+          input_ncm: ncm,
+          matched_ncm: "",
+          explanation: "Não foi possível encontrar uma regra correspondente para o NCM informado na base atual.",
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // 3. Refine by CST ICMS
-    const cstMatches = rules.filter((r) => r.cst_icms === cstIcms);
-    if (cstMatches.length > 0) {
-      rules = cstMatches;
-      matchedBy += "+cst";
+    // 3. Keyword scoring
+    const scored = (rules as CbenefRule[]).map((r) => {
+      const ruleKeywords = r.keywords || [];
+      const ruleDesc = (r.description || "").toLowerCase();
+      let kwScore = 0;
+      for (const kw of keywords) {
+        if (ruleKeywords.some((rk: string) => rk.toLowerCase().includes(kw))) kwScore += 2;
+        if (ruleDesc.includes(kw)) kwScore += 1;
+      }
+      return { rule: r, kwScore };
+    });
+
+    // 4. CST matching
+    let cstSource: "informado" | "sugerido" | "ajustado" = "sugerido";
+    let finalCst = "";
+    let cstWarning = "";
+
+    if (informedCst) {
+      // Filter rules that match informed CST
+      const cstMatches = scored.filter((s) => s.rule.cst_icms === informedCst);
+      if (cstMatches.length > 0) {
+        // CST informed and coherent
+        cstSource = "informado";
+        finalCst = informedCst;
+        // Boost scores for CST matches
+        cstMatches.forEach((s) => s.kwScore += 5);
+        matchedBy += "+cst_informado";
+      } else {
+        // CST informed but divergent
+        cstSource = "ajustado";
+        cstWarning = "O CST informado não parece compatível com a regra encontrada. A resposta usa o enquadramento mais provável identificado pelo sistema.";
+        matchedBy += "+cst_ajustado";
+      }
+    } else {
+      matchedBy += "+cst_sugerido";
     }
 
-    // 4. Refine by keywords
-    if (keywords.length > 0 && rules.length > 1) {
-      const scored = rules.map((r) => {
-        const ruleKeywords = r.keywords || [];
-        const ruleDesc = (r.description || "").toLowerCase();
-        let score = 0;
-        for (const kw of keywords) {
-          if (ruleKeywords.some((rk: string) => rk.toLowerCase().includes(kw))) score += 2;
-          if (ruleDesc.includes(kw)) score += 1;
-        }
-        return { rule: r, keywordScore: score };
-      });
+    // Sort by keyword score then priority
+    scored.sort((a, b) => {
+      if (b.kwScore !== a.kwScore) return b.kwScore - a.kwScore;
+      return b.rule.priority - a.rule.priority;
+    });
 
-      scored.sort((a, b) => b.keywordScore - a.keywordScore);
-      if (scored[0].keywordScore > 0) {
-        rules = [scored[0].rule];
-        matchedBy += "+keywords";
+    const bestRule = scored[0].rule;
+    const bestKwScore = scored[0].kwScore;
+
+    // Determine final CST
+    if (cstSource === "informado") {
+      finalCst = informedCst!;
+    } else {
+      finalCst = bestRule.suggested_cst_icms || bestRule.cst_icms || "";
+    }
+
+    // Calculate confidence score (0-1 scale)
+    let confidence = 0;
+
+    // NCM match quality
+    if (matchedBy.includes("ncm_exato")) {
+      confidence += 0.40;
+    } else {
+      confidence += 0.15;
+    }
+
+    // Keyword relevance
+    if (bestKwScore >= 4) confidence += 0.25;
+    else if (bestKwScore >= 2) confidence += 0.15;
+    else if (bestKwScore >= 1) confidence += 0.08;
+
+    // CST coherence
+    if (cstSource === "informado") confidence += 0.25;
+    else if (cstSource === "sugerido" && bestRule.cst_icms) confidence += 0.15;
+    else if (cstSource === "ajustado") confidence += 0.05;
+
+    // Priority bonus
+    if (bestRule.priority >= 15) confidence += 0.10;
+    else if (bestRule.priority >= 10) confidence += 0.05;
+
+    confidence = Math.min(confidence, 1.0);
+    confidence = Math.round(confidence * 100) / 100;
+
+    const confidenceLevel = confidence >= 0.90 ? "high" : confidence >= 0.75 ? "medium" : "low";
+
+    // Build explanation
+    let explanation = "";
+    if (confidenceLevel === "high") {
+      explanation = `Regra encontrada com alta confiança para NCM ${ncm}. ${bestRule.description || ""}`;
+    } else if (confidenceLevel === "medium") {
+      explanation = `Sugestão com confiança média para NCM ${ncm}. Recomenda-se validação antes do uso em documento fiscal.`;
+    } else {
+      explanation = `Não foi possível sugerir um cBenef com segurança com base nos dados informados.`;
+    }
+
+    // Get rule version info
+    let ruleVersion = null;
+    if (bestRule.rule_version_id) {
+      const { data: rv } = await supabase
+        .from("rule_versions")
+        .select("version_label, version_code, published_at, created_at")
+        .eq("id", bestRule.rule_version_id)
+        .single();
+      if (rv) {
+        ruleVersion = {
+          version_label: rv.version_label,
+          version_code: rv.version_code,
+          published_at: rv.published_at || rv.created_at,
+        };
       }
     }
-
-    // Pick best rule
-    const bestRule = rules[0];
-
-    // Calculate confidence
-    let confidence = 0;
-    if (matchedBy.includes("ncm_exato")) confidence += 50;
-    else confidence += 25;
-    if (matchedBy.includes("cst")) confidence += 30;
-    if (matchedBy.includes("keywords")) confidence += 20;
-
-    confidence = Math.min(confidence, 100);
-
-    const confidenceLevel = confidence >= 70 ? "high" : confidence >= 40 ? "medium" : "low";
 
     // Log query
     await supabase.from("query_logs").insert({
       ean: body.ean || null,
       description: body.descricao || null,
       ncm: ncm,
-      cst_icms: cstIcms,
+      cst_icms: informedCst || finalCst,
       brand: body.marca || null,
-      suggested_cbenef: bestRule.cbenef_code,
+      suggested_cbenef: confidenceLevel !== "low" ? bestRule.cbenef_code : null,
       confidence_score: confidence,
       rule_id: bestRule.id,
       matched_by: matchedBy,
@@ -155,15 +251,23 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         cbenef_code: bestRule.cbenef_code,
+        informed_cst_icms: informedCst || "",
+        suggested_cst_icms: bestRule.suggested_cst_icms || bestRule.cst_icms || "",
+        final_cst_icms: finalCst,
+        cst_source: cstSource,
+        cst_warning: cstWarning,
         confidence_score: confidence,
         confidence_level: confidenceLevel,
-        rule_description: bestRule.description || "Regra sem descrição detalhada.",
-        cst_considered: cstIcms,
-        ncm_considered: ncm,
-        legal_basis: bestRule.legal_basis || "Fundamento não especificado na base.",
-        legal_url: bestRule.legal_url || null,
-        matched_by: matchedBy,
-        base_date: bestRule.updated_at || bestRule.created_at,
+        matched_rule_id: bestRule.id,
+        application_context: bestRule.application_context || "Operação interna — Estado de São Paulo",
+        legal_basis_name: bestRule.legal_basis_name || bestRule.legal_basis || "",
+        legal_basis_summary: bestRule.legal_basis_summary || "",
+        legal_basis_url: bestRule.legal_url || null,
+        rule_version: ruleVersion,
+        last_updated_at: bestRule.updated_at || bestRule.created_at,
+        input_ncm: ncm,
+        matched_ncm: bestRule.ncm,
+        explanation: explanation,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
