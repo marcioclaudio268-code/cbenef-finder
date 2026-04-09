@@ -27,6 +27,7 @@ export type Database = {
           legal_basis: string | null
           legal_basis_name: string | null
           legal_basis_summary: string | null
+          legal_basis_url: string | null
           legal_url: string | null
           ncm: string
           priority: number
@@ -47,6 +48,7 @@ export type Database = {
           legal_basis?: string | null
           legal_basis_name?: string | null
           legal_basis_summary?: string | null
+          legal_basis_url?: string | null
           legal_url?: string | null
           ncm: string
           priority?: number
@@ -67,6 +69,7 @@ export type Database = {
           legal_basis?: string | null
           legal_basis_name?: string | null
           legal_basis_summary?: string | null
+          legal_basis_url?: string | null
           legal_url?: string | null
           ncm?: string
           priority?: number

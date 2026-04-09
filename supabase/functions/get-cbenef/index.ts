@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface RequestBody {
   ean?: string;
-  descricao?: string;
+  descricao: string;
   ncm: string;
   cst_icms?: string;
   marca?: string;
@@ -25,6 +25,7 @@ interface CbenefRule {
   legal_url: string | null;
   legal_basis_name: string | null;
   legal_basis_summary: string | null;
+  legal_basis_url: string | null;
   application_context: string | null;
   priority: number;
   rule_version_id: string | null;
@@ -41,9 +42,17 @@ Deno.serve(async (req) => {
   try {
     const body: RequestBody = await req.json();
 
-    if (!body.ncm) {
+    // Validate required fields
+    if (!body.ncm || !body.ncm.trim()) {
       return new Response(
         JSON.stringify({ error: "NCM é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!body.descricao || !body.descricao.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Descrição do produto é obrigatória" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -69,7 +78,13 @@ Deno.serve(async (req) => {
       .eq("is_active", true)
       .order("priority", { ascending: false });
 
+    let matchedByNcmExact = false;
+    let matchedByNcmPrefix = false;
     let matchedBy = "ncm_exato";
+
+    if (rules && rules.length > 0) {
+      matchedByNcmExact = true;
+    }
 
     // 2. Prefix match if no exact
     if (!rules || rules.length === 0) {
@@ -83,6 +98,7 @@ Deno.serve(async (req) => {
           .order("priority", { ascending: false });
         if (data && data.length > 0) {
           rules = data;
+          matchedByNcmPrefix = true;
           matchedBy = "ncm_prefixo";
           break;
         }
@@ -121,6 +137,11 @@ Deno.serve(async (req) => {
           input_ncm: ncm,
           matched_ncm: "",
           explanation: "Não foi possível encontrar uma regra correspondente para o NCM informado na base atual.",
+          matched_by_ncm_exact: false,
+          matched_by_ncm_prefix: false,
+          keyword_match_count: 0,
+          used_informed_cst: false,
+          auto_suggested_cst: false,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -142,24 +163,24 @@ Deno.serve(async (req) => {
     let cstSource: "informado" | "sugerido" | "ajustado" = "sugerido";
     let finalCst = "";
     let cstWarning = "";
+    let usedInformedCst = false;
+    let autoSuggestedCst = false;
 
     if (informedCst) {
-      // Filter rules that match informed CST
       const cstMatches = scored.filter((s) => s.rule.cst_icms === informedCst);
       if (cstMatches.length > 0) {
-        // CST informed and coherent
         cstSource = "informado";
         finalCst = informedCst;
-        // Boost scores for CST matches
+        usedInformedCst = true;
         cstMatches.forEach((s) => s.kwScore += 5);
         matchedBy += "+cst_informado";
       } else {
-        // CST informed but divergent
         cstSource = "ajustado";
         cstWarning = "O CST informado não parece compatível com a regra encontrada. A resposta usa o enquadramento mais provável identificado pelo sistema.";
         matchedBy += "+cst_ajustado";
       }
     } else {
+      autoSuggestedCst = true;
       matchedBy += "+cst_sugerido";
     }
 
@@ -179,29 +200,35 @@ Deno.serve(async (req) => {
       finalCst = bestRule.suggested_cst_icms || bestRule.cst_icms || "";
     }
 
-    // Calculate confidence score (0-1 scale)
+    // ── Confidence scoring (recalibrated) ──
+    // The main use case is: user does NOT know CST. The system must still
+    // reach medium confidence when NCM is exact + description matches well.
     let confidence = 0;
 
-    // NCM match quality
-    if (matchedBy.includes("ncm_exato")) {
+    // NCM match quality (max 0.40)
+    if (matchedByNcmExact) {
       confidence += 0.40;
     } else {
       confidence += 0.15;
     }
 
-    // Keyword relevance
-    if (bestKwScore >= 4) confidence += 0.25;
-    else if (bestKwScore >= 2) confidence += 0.15;
-    else if (bestKwScore >= 1) confidence += 0.08;
+    // Keyword relevance (max 0.30)
+    if (bestKwScore >= 4) confidence += 0.30;
+    else if (bestKwScore >= 2) confidence += 0.20;
+    else if (bestKwScore >= 1) confidence += 0.10;
 
-    // CST coherence
-    if (cstSource === "informado") confidence += 0.25;
-    else if (cstSource === "sugerido" && bestRule.cst_icms) confidence += 0.15;
-    else if (cstSource === "ajustado") confidence += 0.05;
+    // CST coherence (max 0.15)
+    if (cstSource === "informado") confidence += 0.15;
+    else if (cstSource === "sugerido" && (bestRule.suggested_cst_icms || bestRule.cst_icms)) confidence += 0.10;
+    else if (cstSource === "ajustado") confidence += 0.03;
 
-    // Priority bonus
+    // Priority / rule quality bonus (max 0.10)
     if (bestRule.priority >= 15) confidence += 0.10;
-    else if (bestRule.priority >= 10) confidence += 0.05;
+    else if (bestRule.priority >= 10) confidence += 0.07;
+    else if (bestRule.priority >= 5) confidence += 0.04;
+
+    // Legal basis bonus (max 0.05) — rule has solid legal reference
+    if (bestRule.legal_basis_name && bestRule.legal_basis_summary) confidence += 0.05;
 
     confidence = Math.min(confidence, 1.0);
     confidence = Math.round(confidence * 100) / 100;
@@ -248,6 +275,9 @@ Deno.serve(async (req) => {
       matched_by: matchedBy,
     });
 
+    // Resolve legal_basis_url: prefer new column, fallback to legacy legal_url
+    const legalBasisUrl = bestRule.legal_basis_url || bestRule.legal_url || null;
+
     return new Response(
       JSON.stringify({
         cbenef_code: bestRule.cbenef_code,
@@ -262,12 +292,18 @@ Deno.serve(async (req) => {
         application_context: bestRule.application_context || "Operação interna — Estado de São Paulo",
         legal_basis_name: bestRule.legal_basis_name || bestRule.legal_basis || "",
         legal_basis_summary: bestRule.legal_basis_summary || "",
-        legal_basis_url: bestRule.legal_url || null,
+        legal_basis_url: legalBasisUrl,
         rule_version: ruleVersion,
         last_updated_at: bestRule.updated_at || bestRule.created_at,
         input_ncm: ncm,
         matched_ncm: bestRule.ncm,
         explanation: explanation,
+        // Audit / debugging fields
+        matched_by_ncm_exact: matchedByNcmExact,
+        matched_by_ncm_prefix: matchedByNcmPrefix,
+        keyword_match_count: bestKwScore,
+        used_informed_cst: usedInformedCst,
+        auto_suggested_cst: autoSuggestedCst,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
