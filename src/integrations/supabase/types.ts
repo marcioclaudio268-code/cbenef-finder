@@ -20,6 +20,7 @@ export type Database = {
           cbenef_code: string
           created_at: string
           cst_icms: string | null
+          data_origin: string
           description: string | null
           id: string
           is_active: boolean
@@ -41,6 +42,7 @@ export type Database = {
           cbenef_code: string
           created_at?: string
           cst_icms?: string | null
+          data_origin?: string
           description?: string | null
           id?: string
           is_active?: boolean
@@ -62,6 +64,7 @@ export type Database = {
           cbenef_code?: string
           created_at?: string
           cst_icms?: string | null
+          data_origin?: string
           description?: string | null
           id?: string
           is_active?: boolean
@@ -186,6 +189,7 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          source_type: string
           state: string
           updated_at: string
           url: string | null
@@ -196,6 +200,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
+          source_type?: string
           state?: string
           updated_at?: string
           url?: string | null
@@ -206,6 +211,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
+          source_type?: string
           state?: string
           updated_at?: string
           url?: string | null
