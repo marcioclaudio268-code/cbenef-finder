@@ -77,12 +77,15 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="descricao" className="text-sm font-medium">Descrição do Produto</Label>
+            <Label htmlFor="descricao" className="text-sm font-medium">
+              Descrição do Produto <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="descricao"
               placeholder="Ex: Preparação alimentícia composta"
               value={form.descricao}
               onChange={handleChange("descricao")}
+              required
             />
           </div>
 
