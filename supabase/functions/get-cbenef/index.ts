@@ -186,7 +186,11 @@ Deno.serve(async (req) => {
     }
 
     // Sort by keyword score then priority
+    // Sort: imported > seed, then keyword score, then priority
     scored.sort((a, b) => {
+      const originA = a.rule.data_origin === "imported" ? 1 : 0;
+      const originB = b.rule.data_origin === "imported" ? 1 : 0;
+      if (originB !== originA) return originB - originA;
       if (b.kwScore !== a.kwScore) return b.kwScore - a.kwScore;
       return b.rule.priority - a.rule.priority;
     });
