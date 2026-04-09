@@ -28,6 +28,12 @@ export interface CbenefResult {
   input_ncm: string;
   matched_ncm: string;
   explanation: string;
+  // Audit fields
+  matched_by_ncm_exact: boolean;
+  matched_by_ncm_prefix: boolean;
+  keyword_match_count: number;
+  used_informed_cst: boolean;
+  auto_suggested_cst: boolean;
 }
 
 interface ResultadoCardProps {
