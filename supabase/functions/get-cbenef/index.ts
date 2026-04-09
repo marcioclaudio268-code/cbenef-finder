@@ -30,6 +30,7 @@ interface CbenefRule {
   priority: number;
   rule_version_id: string | null;
   is_active: boolean;
+  data_origin: string;
   updated_at: string;
   created_at: string;
 }
