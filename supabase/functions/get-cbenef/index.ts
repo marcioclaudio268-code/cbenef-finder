@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
         keyword_match_count: bestKwScore,
         used_informed_cst: usedInformedCst,
         auto_suggested_cst: autoSuggestedCst,
+        data_origin: bestRule.data_origin,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
