@@ -36,7 +36,7 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
     onSubmit(form);
   };
 
-  const isValid = form.ncm.trim().length > 0 && form.cst_icms.trim().length > 0;
+  const isValid = form.ncm.trim().length > 0;
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-lg border-border/60">
@@ -50,7 +50,9 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="ean" className="text-sm font-medium">EAN</Label>
+              <Label htmlFor="ean" className="text-sm font-medium">
+                EAN <span className="text-muted-foreground text-xs">(opcional)</span>
+              </Label>
               <Input
                 id="ean"
                 placeholder="Ex: 7891234567890"
@@ -87,16 +89,18 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="cst_icms" className="text-sm font-medium">
-                CST ICMS <span className="text-destructive">*</span>
+                CST ICMS <span className="text-muted-foreground text-xs">(opcional)</span>
               </Label>
               <Input
                 id="cst_icms"
                 placeholder="Ex: 00, 20, 40, 60"
                 value={form.cst_icms}
                 onChange={handleChange("cst_icms")}
-                required
                 className="font-mono"
               />
+              <p className="text-xs text-muted-foreground">
+                Se não souber o CST, deixe em branco. O sistema tentará sugerir o CST mais adequado para a situação informada.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="marca" className="text-sm font-medium">

@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       cbenef_rules: {
         Row: {
+          application_context: string | null
           cbenef_code: string
           created_at: string
           cst_icms: string | null
@@ -24,14 +25,18 @@ export type Database = {
           is_active: boolean
           keywords: string[] | null
           legal_basis: string | null
+          legal_basis_name: string | null
+          legal_basis_summary: string | null
           legal_url: string | null
           ncm: string
           priority: number
           rule_version_id: string | null
           state: string
+          suggested_cst_icms: string | null
           updated_at: string
         }
         Insert: {
+          application_context?: string | null
           cbenef_code: string
           created_at?: string
           cst_icms?: string | null
@@ -40,14 +45,18 @@ export type Database = {
           is_active?: boolean
           keywords?: string[] | null
           legal_basis?: string | null
+          legal_basis_name?: string | null
+          legal_basis_summary?: string | null
           legal_url?: string | null
           ncm: string
           priority?: number
           rule_version_id?: string | null
           state?: string
+          suggested_cst_icms?: string | null
           updated_at?: string
         }
         Update: {
+          application_context?: string | null
           cbenef_code?: string
           created_at?: string
           cst_icms?: string | null
@@ -56,11 +65,14 @@ export type Database = {
           is_active?: boolean
           keywords?: string[] | null
           legal_basis?: string | null
+          legal_basis_name?: string | null
+          legal_basis_summary?: string | null
           legal_url?: string | null
           ncm?: string
           priority?: number
           rule_version_id?: string | null
           state?: string
+          suggested_cst_icms?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -131,6 +143,7 @@ export type Database = {
           is_current: boolean
           published_at: string | null
           source_feed_id: string | null
+          version_code: string | null
           version_label: string
         }
         Insert: {
@@ -140,6 +153,7 @@ export type Database = {
           is_current?: boolean
           published_at?: string | null
           source_feed_id?: string | null
+          version_code?: string | null
           version_label: string
         }
         Update: {
@@ -149,6 +163,7 @@ export type Database = {
           is_current?: boolean
           published_at?: string | null
           source_feed_id?: string | null
+          version_code?: string | null
           version_label?: string
         }
         Relationships: [
