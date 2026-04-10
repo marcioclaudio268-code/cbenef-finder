@@ -38,6 +38,7 @@ export type Database = {
           ncm: string
           output_cfop: string | null
           output_cst_icms: string | null
+          output_icms_rate: number | null
           output_st_applicable: boolean | null
           output_trib_code: string | null
           presentation_type: string | null
@@ -73,6 +74,7 @@ export type Database = {
           ncm: string
           output_cfop?: string | null
           output_cst_icms?: string | null
+          output_icms_rate?: number | null
           output_st_applicable?: boolean | null
           output_trib_code?: string | null
           presentation_type?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           ncm?: string
           output_cfop?: string | null
           output_cst_icms?: string | null
+          output_icms_rate?: number | null
           output_st_applicable?: boolean | null
           output_trib_code?: string | null
           presentation_type?: string | null

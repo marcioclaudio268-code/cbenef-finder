@@ -212,6 +212,7 @@ interface CbenefRule {
   output_st_applicable: boolean | null;
   output_cst_icms: string | null;
   output_cfop: string | null;
+  output_icms_rate: number | null;
   decision_reason: string | null;
   legal_basis: string | null;
   legal_url: string | null;
@@ -351,6 +352,7 @@ function buildLowConfidenceResponse(
     product_type: classification.product_type,
     presentation_type: classification.presentation_type,
     output_st_applicable: null, output_cfop: "",
+    output_icms_rate: null,
     decision_reason: extra.decision_reason ?? "",
   };
 }
@@ -595,6 +597,7 @@ Deno.serve(async (req) => {
       presentation_type: bestRule.presentation_type || classification.presentation_type,
       output_st_applicable: bestRule.output_st_applicable ?? null,
       output_cfop: bestRule.output_cfop || "",
+      output_icms_rate: bestRule.output_icms_rate ?? null,
       decision_reason: decisionReason,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 

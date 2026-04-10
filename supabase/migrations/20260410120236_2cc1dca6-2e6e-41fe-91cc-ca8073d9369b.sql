@@ -1,0 +1,1 @@
+ALTER TABLE public.cbenef_rules ADD COLUMN IF NOT EXISTS output_icms_rate numeric;

@@ -45,6 +45,7 @@ export interface CbenefResult {
   product_type?: string;
   presentation_type?: string;
   output_st_applicable?: boolean | null;
+  output_icms_rate?: number | null;
   output_cfop?: string;
   decision_reason?: string;
 }
@@ -174,14 +175,38 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
           </div>
         ) : (
           <>
-            {/* B. Resultado principal */}
-            <div className="rounded-lg bg-secondary p-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-                Código cBenef Sugerido
-              </p>
+            {/* B. Resultado principal — 4 campos centrais */}
+            <div className="rounded-lg bg-secondary p-4 space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <p className="text-3xl font-bold font-mono text-primary">{result.cbenef_code}</p>
+                <div className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Classificação fiscal sugerida</p>
+                </div>
                 {getConfidenceBadge(result.confidence_level, result.confidence_score)}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">%ICMS saída</p>
+                  <p className="text-2xl font-bold font-mono text-primary">
+                    {result.output_icms_rate != null ? `${result.output_icms_rate}%` : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CST</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{result.final_cst_icms || "—"}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <CstIcon className={`w-3 h-3 ${cstLabel.color}`} />
+                    <span className={`text-xs ${cstLabel.color}`}>{cstLabel.text}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CFOP</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{result.output_cfop || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">cBenef</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{result.cbenef_code || "—"}</p>
+                </div>
               </div>
             </div>
 
@@ -192,6 +217,15 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                 <p className="text-sm text-foreground">{result.cst_warning}</p>
               </div>
             )}
+
+            {/* Detalhes técnicos auxiliares */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+              <InfoBlock label="ST Aplicável" value={result.output_st_applicable === true ? "Sim" : result.output_st_applicable === false ? "Não" : "—"} />
+              <InfoBlock label="NCM Considerado" value={result.matched_ncm || result.input_ncm} mono />
+              {result.matched_ncm && result.matched_ncm !== result.input_ncm && (
+                <InfoBlock label="NCM Informado" value={result.input_ncm} mono />
+              )}
+            </div>
 
             {/* Grupo identificado */}
             {hasGroupInfo && (
