@@ -21,9 +21,13 @@ export type Database = {
           created_at: string
           cst_icms: string | null
           data_origin: string
+          decision_reason: string | null
           description: string | null
+          description_patterns: string[] | null
           id: string
           is_active: boolean
+          keyword_exclude: string[] | null
+          keyword_include: string[] | null
           keywords: string[] | null
           legal_basis: string | null
           legal_basis_name: string | null
@@ -31,7 +35,14 @@ export type Database = {
           legal_basis_url: string | null
           legal_url: string | null
           ncm: string
+          output_cfop: string | null
+          output_cst_icms: string | null
+          output_st_applicable: boolean | null
+          output_trib_code: string | null
+          presentation_type: string | null
           priority: number
+          product_family: string | null
+          product_type: string | null
           rule_version_id: string | null
           state: string
           suggested_cst_icms: string | null
@@ -43,9 +54,13 @@ export type Database = {
           created_at?: string
           cst_icms?: string | null
           data_origin?: string
+          decision_reason?: string | null
           description?: string | null
+          description_patterns?: string[] | null
           id?: string
           is_active?: boolean
+          keyword_exclude?: string[] | null
+          keyword_include?: string[] | null
           keywords?: string[] | null
           legal_basis?: string | null
           legal_basis_name?: string | null
@@ -53,7 +68,14 @@ export type Database = {
           legal_basis_url?: string | null
           legal_url?: string | null
           ncm: string
+          output_cfop?: string | null
+          output_cst_icms?: string | null
+          output_st_applicable?: boolean | null
+          output_trib_code?: string | null
+          presentation_type?: string | null
           priority?: number
+          product_family?: string | null
+          product_type?: string | null
           rule_version_id?: string | null
           state?: string
           suggested_cst_icms?: string | null
@@ -65,9 +87,13 @@ export type Database = {
           created_at?: string
           cst_icms?: string | null
           data_origin?: string
+          decision_reason?: string | null
           description?: string | null
+          description_patterns?: string[] | null
           id?: string
           is_active?: boolean
+          keyword_exclude?: string[] | null
+          keyword_include?: string[] | null
           keywords?: string[] | null
           legal_basis?: string | null
           legal_basis_name?: string | null
@@ -75,7 +101,14 @@ export type Database = {
           legal_basis_url?: string | null
           legal_url?: string | null
           ncm?: string
+          output_cfop?: string | null
+          output_cst_icms?: string | null
+          output_st_applicable?: boolean | null
+          output_trib_code?: string | null
+          presentation_type?: string | null
           priority?: number
+          product_family?: string | null
+          product_type?: string | null
           rule_version_id?: string | null
           state?: string
           suggested_cst_icms?: string | null

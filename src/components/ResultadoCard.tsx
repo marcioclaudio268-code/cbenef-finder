@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, AlertTriangle, XCircle, ExternalLink,
-  Clock, Shield, Scale, Info, FileText
+  Clock, Shield, Scale, Info, FileText, Tag, Truck, MessageSquare
 } from "lucide-react";
 
 export interface CbenefResult {
@@ -28,12 +28,23 @@ export interface CbenefResult {
   input_ncm: string;
   matched_ncm: string;
   explanation: string;
-  // Audit fields
   matched_by_ncm_exact: boolean;
   matched_by_ncm_prefix: boolean;
   keyword_match_count: number;
   used_informed_cst: boolean;
   auto_suggested_cst: boolean;
+  data_origin?: string;
+  // Semantic fields
+  normalized_description?: string;
+  matched_keywords?: string[];
+  excluded_keywords_hit?: string[];
+  product_family?: string;
+  product_type?: string;
+  presentation_type?: string;
+  output_st_applicable?: boolean | null;
+  output_trib_code?: string;
+  output_cfop?: string;
+  decision_reason?: string;
 }
 
 interface ResultadoCardProps {
@@ -80,10 +91,18 @@ function getCstLabel(source: string) {
   }
 }
 
+function formatLabel(val: string | undefined | null): string {
+  if (!val || val === "nao_identificado" || val === "padrao") return "—";
+  return val.charAt(0).toUpperCase() + val.slice(1).replace(/_/g, " ");
+}
+
 export function ResultadoCard({ result }: ResultadoCardProps) {
   const isLowConfidence = result.confidence_level === "low";
   const cstLabel = getCstLabel(result.cst_source);
   const CstIcon = cstLabel.icon;
+
+  const hasSemanticInfo = result.product_family || result.product_type;
+  const hasTribInfo = result.output_trib_code || result.output_cfop;
 
   return (
     <Card className="w-full max-w-2xl mx-auto mt-6 shadow-lg border-border/60 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -112,19 +131,28 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
         </div>
 
         {isLowConfidence ? (
-          /* Low confidence — warning block */
           <div className="text-center py-6 space-y-3">
             <XCircle className="w-12 h-12 mx-auto text-destructive/70" />
             <p className="text-foreground font-medium">
               Não foi possível sugerir um cBenef com segurança com base nos dados informados.
             </p>
-            <p className="text-sm text-muted-foreground">
-              {result.explanation}
-            </p>
+            <p className="text-sm text-muted-foreground">{result.explanation}</p>
+            {result.cst_warning && (
+              <p className="text-sm text-warning">{result.cst_warning}</p>
+            )}
             <p className="text-sm text-muted-foreground">
               Verifique os dados informados ou consulte a legislação vigente do estado de São Paulo.
             </p>
             {getConfidenceBadge(result.confidence_level, result.confidence_score)}
+            {/* Show identified type even on low confidence */}
+            {hasSemanticInfo && (
+              <div className="mt-4 text-left rounded-lg bg-secondary/50 p-3 space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo fiscal identificado na descrição</p>
+                <p className="text-sm text-foreground">
+                  {formatLabel(result.product_family)} → {formatLabel(result.product_type)} → {formatLabel(result.presentation_type)}
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -139,7 +167,7 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               </div>
             </div>
 
-            {/* CST/NCM warnings */}
+            {/* Warnings */}
             {result.cst_warning && (
               <div className="rounded-lg bg-warning/10 border border-warning/30 p-3 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
@@ -147,62 +175,92 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               </div>
             )}
 
-            {result.cst_source === "sugerido" && result.confidence_level === "medium" && (
-              <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 flex items-start gap-2">
-                <Info className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                <p className="text-sm text-foreground">
-                  O CST abaixo foi sugerido automaticamente com base na regra encontrada. Recomenda-se validação antes do uso.
-                </p>
+            {/* Tipo fiscal identificado */}
+            {hasSemanticInfo && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Tipo fiscal identificado</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <InfoBlock label="Família" value={formatLabel(result.product_family)} />
+                  <InfoBlock label="Tipo" value={formatLabel(result.product_type)} />
+                  <InfoBlock label="Apresentação" value={formatLabel(result.presentation_type)} />
+                </div>
               </div>
             )}
 
-            {/* C. Enquadramento fiscal */}
+            {/* Tributação sugerida */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Scale className="w-4 h-4 text-primary" />
-                <p className="text-sm font-semibold text-foreground">Enquadramento fiscal</p>
+                <p className="text-sm font-semibold text-foreground">Tributação sugerida</p>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CST Final</p>
-                  <p className="text-lg font-bold font-mono text-foreground">{result.final_cst_icms}</p>
+                  <p className="text-lg font-bold font-mono text-foreground">{result.final_cst_icms || "—"}</p>
                   <div className="flex items-center gap-1 mt-1">
                     <CstIcon className={`w-3 h-3 ${cstLabel.color}`} />
                     <span className={`text-xs ${cstLabel.color}`}>{cstLabel.text}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">NCM Considerado</p>
-                  <p className="text-lg font-bold font-mono text-foreground">{result.matched_ncm || result.input_ncm}</p>
-                  {result.matched_ncm && result.matched_ncm !== result.input_ncm && (
-                    <p className="text-xs text-muted-foreground mt-1">Informado: {result.input_ncm}</p>
-                  )}
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">ST Aplicável</p>
+                  <p className="text-lg font-bold font-mono text-foreground">
+                    {result.output_st_applicable === true ? "Sim" : result.output_st_applicable === false ? "Não" : "—"}
+                  </p>
                 </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Cód. Tributação</p>
+                  <p className="text-lg font-bold font-mono text-foreground">{result.output_trib_code || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CFOP</p>
+                  <p className="text-lg font-bold font-mono text-foreground">{result.output_cfop || "—"}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">NCM Considerado</p>
+                <p className="text-sm font-mono text-foreground">{result.matched_ncm || result.input_ncm}</p>
+                {result.matched_ncm && result.matched_ncm !== result.input_ncm && (
+                  <p className="text-xs text-muted-foreground mt-0.5">Informado: {result.input_ncm}</p>
+                )}
               </div>
             </div>
 
-            {/* D. Base legal */}
+            {/* Por que esta resposta foi escolhida */}
+            {result.decision_reason && (
+              <div className="rounded-lg border border-border p-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Por que esta resposta foi escolhida</p>
+                </div>
+                <p className="text-sm text-foreground">{result.decision_reason}</p>
+                {result.matched_keywords && result.matched_keywords.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-xs text-muted-foreground">Palavras-chave:</span>
+                    {result.matched_keywords.map((kw, i) => (
+                      <Badge key={i} variant="outline" className="text-xs">{kw}</Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Base legal */}
             {(result.legal_basis_name || result.legal_basis_summary) && (
               <div className="rounded-lg border border-border p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
                   <p className="text-sm font-semibold text-foreground">Base legal</p>
                 </div>
-                {result.legal_basis_name && (
-                  <InfoBlock label="Norma / Referência" value={result.legal_basis_name} />
-                )}
-                {result.legal_basis_summary && (
-                  <InfoBlock label="Resumo" value={result.legal_basis_summary} />
-                )}
+                {result.legal_basis_name && <InfoBlock label="Norma / Referência" value={result.legal_basis_name} />}
+                {result.legal_basis_summary && <InfoBlock label="Resumo" value={result.legal_basis_summary} />}
                 {result.legal_basis_url && (
-                  <a
-                    href={result.legal_basis_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Ver fonte legal completa
+                  <a href={result.legal_basis_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium">
+                    <ExternalLink className="w-4 h-4" />Ver fonte legal completa
                   </a>
                 )}
                 <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-1 border-t border-border mt-2">
@@ -217,7 +275,7 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               </div>
             )}
 
-            {/* E. Explicação curta */}
+            {/* Explicação */}
             <div className="pt-2 border-t border-border">
               <p className="text-sm text-muted-foreground italic">{result.explanation}</p>
             </div>
