@@ -45,6 +45,7 @@ export interface CbenefResult {
   product_type?: string;
   presentation_type?: string;
   output_st_applicable?: boolean | null;
+  output_icms_rate?: number | null;
   output_cfop?: string;
   decision_reason?: string;
 }
