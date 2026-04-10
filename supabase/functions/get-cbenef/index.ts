@@ -7,105 +7,13 @@ const corsHeaders = {
 
 // ── Commercial noise tokens (ignored for fiscal classification) ──
 const NOISE_TOKENS = new Set([
-  // brands
   "promissao","aurora","tirolez","frizzo","criolo","santo","antonio","parmalat",
   "nestle","danone","elegante","italac","piracanjuba","vigor","presidente",
-  // packaging / units
   "pote","pct","pct.","pcts","un","und","unid","cx","cxa","caixa","kg","gr","g",
   "ml","lt","lts","litro","litros",
-  // numbers
   "100","150","200","250","300","400","500","600","750","1000",
-  // filler
   "de","do","da","com","sem","para","em","no","na","os","as","ao","pela","pelo",
 ]);
-
-// ══════════════════════════════════════════════════════
-// GROUP INFERENCE KEYWORDS — site taxonomy
-// ══════════════════════════════════════════════════════
-const GROUP_KEYWORDS: Record<string, { macro: string; sub?: string; keywords: string[] }[]> = {
-  carnes_bovinas: [
-    { macro: "carnes_bovinas", sub: "bovino_in_natura", keywords: ["alcatra","picanha","patinho","file mignon","acem","coxao mole","coxao duro","contra file","maminha","fraldinha","lagarto","musculo"] },
-    { macro: "carnes_bovinas", sub: "bovino_com_osso", keywords: ["costela bovina","t-bone","ossobuco"] },
-    { macro: "carnes_bovinas", sub: "miudos_bovinos", keywords: ["figado bovino","lingua bovina","rabo","bucho","dobradinha","mondongo"] },
-    { macro: "carnes_bovinas", sub: "bovino_salgado", keywords: ["charque","carne seca","carne sol","jabá"] },
-  ],
-  carnes_suinas: [
-    { macro: "carnes_suinas", sub: "suino_in_natura", keywords: ["pernil","lombo suino","bisteca suina","costela suina"] },
-    { macro: "carnes_suinas", sub: "bacon_toucinho", keywords: ["bacon","toucinho","panceta"] },
-    { macro: "carnes_suinas", sub: "miudos_suinos", keywords: ["pe suino","orelha suina","rabo suino"] },
-  ],
-  aves: [
-    { macro: "aves", sub: "frango_inteiro", keywords: ["frango inteiro","galinha inteira"] },
-    { macro: "aves", sub: "cortes_frango", keywords: ["coxa","sobrecoxa","asa","peito frango","peito de frango","file peito","coxinha asa","tulipa","meio asa","sassami"] },
-    { macro: "aves", sub: "miudos_frango", keywords: ["moela","coracao frango","figado frango","pe frango"] },
-    { macro: "aves", sub: "frango_temperado", keywords: ["frango temperado","ave temperada"] },
-  ],
-  pescados: [
-    { macro: "pescados", sub: "peixe_inteiro", keywords: ["tilapia inteira","sardinha inteira","peixe inteiro"] },
-    { macro: "pescados", sub: "file_peixe", keywords: ["file tilapia","file merluza","file peixe","file pescada","file salmao"] },
-    { macro: "pescados", sub: "peixe_posta", keywords: ["posta","posta cacao","posta peixe"] },
-    { macro: "pescados", sub: "pescado_salgado", keywords: ["bacalhau","bacalhau salgado","charque peixe"] },
-  ],
-  frios_embutidos: [
-    { macro: "frios_embutidos", keywords: ["presunto","mortadela","salame","linguica","salsicha","apresuntado","copa","peito peru","blanquet","calabresa","paio"] },
-  ],
-  queijos: [
-    { macro: "queijos", sub: "mussarela_peca", keywords: ["mussarela","mucarela","muçarela"] },
-    { macro: "queijos", sub: "prato", keywords: ["queijo prato","prato"] },
-    { macro: "queijos", sub: "provolone", keywords: ["provolone"] },
-    { macro: "queijos", sub: "coalho", keywords: ["coalho","queijo coalho"] },
-    { macro: "queijos", sub: "minas_frescal", keywords: ["minas frescal","minas","frescal"] },
-    { macro: "queijos", sub: "queijo_ralado", keywords: ["queijo ralado","ralado"] },
-    { macro: "queijos", sub: "queijos_especiais", keywords: ["brie","camembert","gorgonzola","gruyere","emmental","gouda","cheddar"] },
-  ],
-  laticinios: [
-    { macro: "laticinios", sub: "manteiga", keywords: ["manteiga"] },
-    { macro: "laticinios", sub: "leite_uht", keywords: ["leite","leite uht","leite integral","leite desnatado","leite semi"] },
-    { macro: "laticinios", sub: "leite_po", keywords: ["leite po","leite em po"] },
-    { macro: "laticinios", sub: "creme_leite", keywords: ["creme de leite","creme leite"] },
-    { macro: "laticinios", sub: "requeijao", keywords: ["requeijao"] },
-    { macro: "laticinios", sub: "ricota", keywords: ["ricota"] },
-    { macro: "laticinios", sub: "nata", keywords: ["nata"] },
-    { macro: "laticinios", sub: "leite_condensado", keywords: ["leite condensado"] },
-    { macro: "laticinios", sub: "iogurte", keywords: ["iogurte","yogurte"] },
-  ],
-  hortifruti: [
-    { macro: "hortifruti", keywords: ["alface","tomate","cebola","batata","uva","banana","mamao","mandioca","laranja","limao","abobora","cenoura","beterraba","pepino","pimentao","alho","manga","melao","melancia","morango","abacaxi","kiwi","pera","maca","ameixa"] },
-  ],
-  ovos_mel: [
-    { macro: "ovos_mel", keywords: ["ovo","ovos","mel"] },
-  ],
-  basicos_graos: [
-    { macro: "basicos_graos", keywords: ["arroz","feijao","cafe","oleo","lentilha","grao de bico","ervilha","soja","milho","fuba","aveia","quinoa","chia","linhaça"] },
-  ],
-  farinhas_derivados: [
-    { macro: "farinhas_derivados", keywords: ["farinha","farinha trigo","farinha mandioca","amido","polvilho","farinha rosca","maisena","farinha milho"] },
-  ],
-  temperos_especiarias: [
-    { macro: "temperos_especiarias", keywords: ["oregano","paprica","colorifico","canela","cravo","noz moscada","louro","cominho","curcuma","gengibre","pimenta","alecrim","manjericao","salsa","cebolinha","coentro","mostarda"] },
-  ],
-  mercearia_doce: [
-    { macro: "mercearia_doce", keywords: ["acucar","chocolate","biscoito","bolacha","geleia","doce","brigadeiro","panetone","wafer","bombom"] },
-  ],
-  mercearia_salgada: [
-    { macro: "mercearia_salgada", keywords: ["macarrao","massa","molho tomate","extrato tomate","azeitona","palmito","milho verde","ervilha lata","atum","sardinha lata","catchup","ketchup","maionese","vinagre","azeite"] },
-  ],
-  congelados_prontos: [
-    { macro: "congelados_prontos", keywords: ["pizza congelada","lasanha congelada","hamburguer congelado","nuggets","empanado","batata frita congelada","sorvete","picole","acai"] },
-  ],
-  bebidas: [
-    { macro: "bebidas", keywords: ["agua mineral","refrigerante","suco","cerveja","vinho","vodka","whisky","cachaca","energetico","cha","agua coco"] },
-  ],
-  bazar_utilidades: [
-    { macro: "bazar_utilidades", keywords: ["copo","prato descartavel","guardanapo","papel aluminio","filme pvc","sacola","pilha","lampada","vela"] },
-  ],
-  higiene_perfumaria: [
-    { macro: "higiene_perfumaria", keywords: ["shampoo","condicionador","sabonete","pasta dental","escova dental","desodorante","papel higienico","absorvente","fralda","creme dental"] },
-  ],
-  limpeza: [
-    { macro: "limpeza", keywords: ["detergente","desinfetante","agua sanitaria","alvejante","amaciante","sabao po","sabao liquido","esponja","pano chao","vassoura","rodo"] },
-  ],
-};
 
 // ── Normalization ──
 function removeAccents(s: string): string {
@@ -125,38 +33,95 @@ function normalizeDescription(raw: string) {
   return { normalized_description: clean, normalized_tokens: allTokens, strong_tokens: strong, commercial_noise_tokens: noise };
 }
 
-// ── Infer macro_group + subgroup from description ──
-function inferGroup(strongTokens: string[], normalizedDesc: string): {
-  inferred_macro_group: string;
-  inferred_subgroup: string;
-  best_score: number;
-} {
-  let bestMacro = "";
-  let bestSub = "";
-  let bestScore = 0;
+// ── Load taxonomy from DB ──
+interface TaxonomyEntry {
+  macro_code: string;
+  sub_code: string | null;
+  keyword: string;
+  match_type: string;
+  weight: number;
+}
 
-  for (const [_key, entries] of Object.entries(GROUP_KEYWORDS)) {
-    for (const entry of entries) {
-      let score = 0;
-      for (const kw of entry.keywords) {
-        const normKw = removeAccents(kw.toLowerCase());
-        const parts = normKw.split(" ");
-        if (parts.length > 1) {
-          if (parts.every(p => strongTokens.includes(p) || normalizedDesc.includes(normKw))) score += 10;
-        } else if (strongTokens.includes(normKw)) {
-          score += 10;
-        } else if (normalizedDesc.includes(normKw)) {
-          score += 5;
-        }
-      }
-      if (score > bestScore) {
-        bestScore = score;
-        bestMacro = entry.macro;
-        bestSub = entry.sub || "";
-      }
+async function loadTaxonomy(supabase: ReturnType<typeof createClient>): Promise<TaxonomyEntry[]> {
+  // Load macro groups
+  const { data: groups } = await supabase
+    .from("classification_groups")
+    .select("id, code, parent_id, level")
+    .eq("is_active", true);
+
+  if (!groups || groups.length === 0) return [];
+
+  // Build parent lookup
+  const idToCode: Record<string, string> = {};
+  const idToParent: Record<string, string | null> = {};
+  for (const g of groups) {
+    idToCode[g.id] = g.code;
+    idToParent[g.id] = g.parent_id;
+  }
+
+  // Load keywords
+  const { data: keywords } = await supabase
+    .from("classification_group_keywords")
+    .select("group_id, keyword, match_type, weight");
+
+  if (!keywords || keywords.length === 0) return [];
+
+  const entries: TaxonomyEntry[] = [];
+  for (const kw of keywords) {
+    const groupCode = idToCode[kw.group_id];
+    if (!groupCode) continue;
+    const parentId = idToParent[kw.group_id];
+    // Determine if this is a macro or sub group
+    let macroCode: string;
+    let subCode: string | null = null;
+    if (parentId && idToCode[parentId]) {
+      macroCode = idToCode[parentId];
+      subCode = groupCode;
+    } else {
+      macroCode = groupCode;
+    }
+    entries.push({
+      macro_code: macroCode,
+      sub_code: subCode,
+      keyword: removeAccents(kw.keyword.toLowerCase()),
+      match_type: kw.match_type,
+      weight: kw.weight,
+    });
+  }
+  return entries;
+}
+
+// ── Infer macro_group + subgroup from description using DB taxonomy ──
+function inferGroupFromTaxonomy(
+  strongTokens: string[],
+  normalizedDesc: string,
+  taxonomy: TaxonomyEntry[]
+): { inferred_macro_group: string; inferred_subgroup: string; best_score: number } {
+  const scores: Record<string, { macro: string; sub: string; score: number }> = {};
+
+  for (const entry of taxonomy) {
+    if (entry.match_type !== "include") continue;
+    const parts = entry.keyword.split(" ");
+    let hit = false;
+    if (parts.length > 1) {
+      if (parts.every(p => strongTokens.includes(p)) || normalizedDesc.includes(entry.keyword)) hit = true;
+    } else {
+      if (strongTokens.includes(entry.keyword) || normalizedDesc.includes(entry.keyword)) hit = true;
+    }
+    if (!hit) continue;
+
+    const key = entry.sub_code || entry.macro_code;
+    if (!scores[key]) scores[key] = { macro: entry.macro_code, sub: entry.sub_code || "", score: 0 };
+    scores[key].score += 10 * entry.weight;
+  }
+
+  let best = { inferred_macro_group: "", inferred_subgroup: "", best_score: 0 };
+  for (const v of Object.values(scores)) {
+    if (v.score > best.best_score) {
+      best = { inferred_macro_group: v.macro, inferred_subgroup: v.sub, best_score: v.score };
     }
   }
-  return { inferred_macro_group: bestMacro, inferred_subgroup: bestSub, best_score: bestScore };
+  return best;
 }
 
 // ── Infer product classification from strong tokens ──
@@ -164,55 +129,63 @@ function inferProductClassification(strongTokens: string[]) {
   const joined = strongTokens.join(" ");
   let family = "", type = "", presentation = "";
 
-  const dairyTypes: Record<string, string[]> = {
-    manteiga: ["manteiga"],
+  // Queijos (own macro_group)
+  const cheeseTypes: Record<string, string[]> = {
     mussarela: ["mussarela","mucarela","mucarel","mussarel"],
-    requeijao: ["requeijao"],
-    cream_cheese: ["cream cheese","cream"],
-    ricota: ["ricota"],
-    parmesao: ["parmesao","parmes"],
+    prato: ["queijo prato"],
     provolone: ["provolone"],
-    queijo: ["queijo"],
-    iogurte: ["iogurte","yogurte"],
-    leite: ["leite"],
-    creme_de_leite: ["creme leite"],
-    nata: ["nata"],
+    coalho: ["coalho","queijo coalho"],
+    minas_frescal: ["minas frescal","minas","frescal"],
+    queijo_ralado: ["queijo ralado"],
   };
-
-  for (const [dtype, kws] of Object.entries(dairyTypes)) {
+  for (const [dtype, kws] of Object.entries(cheeseTypes)) {
     if (kws.some(k => joined.includes(k) || strongTokens.some(t => k.split(" ").every(kp => strongTokens.includes(kp))))) {
-      family = "lacteos"; type = dtype; break;
+      family = "queijos"; type = dtype; break;
+    }
+  }
+
+  // Laticínios
+  if (!family) {
+    const dairyTypes: Record<string, string[]> = {
+      manteiga: ["manteiga"],
+      requeijao: ["requeijao"],
+      ricota: ["ricota"],
+      iogurte: ["iogurte","yogurte"],
+      leite: ["leite"],
+      creme_de_leite: ["creme leite"],
+      nata: ["nata"],
+      leite_condensado: ["leite condensado"],
+    };
+    for (const [dtype, kws] of Object.entries(dairyTypes)) {
+      if (kws.some(k => joined.includes(k) || strongTokens.some(t => k.split(" ").every(kp => strongTokens.includes(kp))))) {
+        family = "laticinios"; type = dtype; break;
+      }
     }
   }
 
   // Meat types
   if (!family) {
-    const meatKw: Record<string, string[]> = {
-      bovino: ["alcatra","picanha","patinho","file mignon","acem","coxao","maminha","fraldinha","lagarto","musculo","costela bovina","charque","carne seca","carne sol"],
-      suino: ["pernil","lombo suino","bisteca suina","costela suina","bacon","toucinho","panceta"],
-      frango: ["frango","coxa","sobrecoxa","asa","peito frango","sassami","moela","coracao frango"],
-      peixe: ["tilapia","merluza","sardinha","salmao","bacalhau","corvina","peixe","file peixe"],
+    const meatKw: Record<string, { family: string; kws: string[] }> = {
+      bovino: { family: "carnes_bovinas", kws: ["alcatra","picanha","patinho","file mignon","acem","coxao","maminha","fraldinha","lagarto","musculo","costela bovina","charque","carne seca","carne sol"] },
+      suino: { family: "carnes_suinas", kws: ["pernil","lombo suino","bisteca suina","costela suina","bacon","toucinho","panceta"] },
+      frango: { family: "aves", kws: ["frango","coxa","sobrecoxa","asa","peito frango","sassami","moela","coracao frango"] },
+      peixe: { family: "pescados", kws: ["tilapia","merluza","sardinha","salmao","bacalhau","corvina","peixe","file peixe"] },
     };
-    for (const [mtype, kws] of Object.entries(meatKw)) {
-      if (kws.some(k => joined.includes(k))) { family = "carnes"; type = mtype; break; }
+    for (const [mtype, cfg] of Object.entries(meatKw)) {
+      if (cfg.kws.some(k => joined.includes(k))) { family = cfg.family; type = mtype; break; }
     }
   }
 
   const presentations: Record<string, string[]> = {
     fatiada: ["fatiada","fatiado","fatia","fatiados"],
     pedaco: ["pedaco","peca","inteiro","inteira","bloco"],
+    ralado: ["ralado","ralada"],
     pote: ["pote"],
     tablete: ["tablete","tabletes","barra"],
-    ralado: ["ralado","ralada"],
     banda: ["banda"],
-    sal: [],
   };
-  // Detect "com sal" / "sem sal" as extra qualifier, not presentation
-  if (strongTokens.includes("sal")) {
-    // no-op, sal is a qualifier
-  }
   for (const [ptype, kws] of Object.entries(presentations)) {
-    if (kws.length > 0 && kws.some(k => strongTokens.includes(k))) { presentation = ptype; break; }
+    if (kws.some(k => strongTokens.includes(k))) { presentation = ptype; break; }
   }
   if (!presentation && type) presentation = "padrao";
   if (!family && !type) { family = "nao_identificado"; type = "nao_identificado"; }
@@ -261,6 +234,7 @@ interface ScoredRule {
   includeHits: string[];
   productTypeMatch: boolean;
   groupMatch: boolean;
+  presentationMatch: boolean;
 }
 
 function scoreRule(
@@ -269,6 +243,7 @@ function scoreRule(
   normalizedDesc: string,
   inferredType: string,
   inferredFamily: string,
+  inferredPresentation: string,
   inferredMacro: string,
   inferredSub: string,
   informedGroup: string | null,
@@ -311,6 +286,13 @@ function scoreRule(
     if (removeAccents(rule.product_family.toLowerCase()) === inferredFamily) score += 5;
   }
 
+  // presentation_type match
+  let presentationMatch = false;
+  if (rule.presentation_type && inferredPresentation) {
+    if (removeAccents(rule.presentation_type.toLowerCase()) === inferredPresentation) { score += 12; presentationMatch = true; }
+    else { score -= 5; } // penalize presentation mismatch
+  }
+
   // ── Group match (macro_group/subgroup) ──
   let groupMatch = false;
   if (rule.macro_group) {
@@ -327,7 +309,7 @@ function scoreRule(
   // priority
   score += Math.min(rule.priority, 20);
 
-  return { rule, score, excludeHit, includeHits, productTypeMatch, groupMatch };
+  return { rule, score, excludeHit, includeHits, productTypeMatch, groupMatch, presentationMatch };
 }
 
 function isDescriptionInsufficient(strongTokens: string[]): boolean {
@@ -337,15 +319,10 @@ function isDescriptionInsufficient(strongTokens: string[]): boolean {
   return nonGeneric.length < 1;
 }
 
-// ══════════════════════════════════════════════════════
-// MACROGROUP LIST for validation
-// ══════════════════════════════════════════════════════
-const VALID_MACROGROUPS = new Set(Object.keys(GROUP_KEYWORDS));
-
 function buildLowConfidenceResponse(
   ncm: string, informedCst: string | null, norm: ReturnType<typeof normalizeDescription>,
   classification: ReturnType<typeof inferProductClassification>,
-  groupInference: ReturnType<typeof inferGroup>,
+  groupInference: { inferred_macro_group: string; inferred_subgroup: string },
   informedGroup: string | null,
   extra: Record<string, unknown> = {}
 ) {
@@ -404,7 +381,11 @@ Deno.serve(async (req) => {
     // ── B. Normalization ──
     const norm = normalizeDescription(body.descricao);
     const classification = inferProductClassification(norm.strong_tokens);
-    const groupInference = inferGroup(norm.strong_tokens, norm.normalized_description);
+
+    // ── Load taxonomy from DB and infer group ──
+    const taxonomy = await loadTaxonomy(supabase);
+    const groupInference = inferGroupFromTaxonomy(norm.strong_tokens, norm.normalized_description, taxonomy);
+
     const descInsufficient = isDescriptionInsufficient(norm.strong_tokens);
 
     // ── Group consistency ──
@@ -452,7 +433,7 @@ Deno.serve(async (req) => {
     // ── D+E. Score all rules ──
     const scored: ScoredRule[] = (rules as CbenefRule[]).map(r =>
       scoreRule(r, norm.strong_tokens, norm.normalized_description, classification.product_type, classification.product_family,
-        groupInference.inferred_macro_group, groupInference.inferred_subgroup, informedGroup)
+        classification.presentation_type, groupInference.inferred_macro_group, groupInference.inferred_subgroup, informedGroup)
     );
 
     const eligible = scored.filter(s => !s.excludeHit);
@@ -473,8 +454,9 @@ Deno.serve(async (req) => {
       })), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ── Ranking: productTypeMatch > groupMatch > includeHits > score > priority ──
+    // ── Ranking: presentationMatch > productTypeMatch > groupMatch > includeHits > score > priority ──
     eligible.sort((a, b) => {
+      if (a.presentationMatch !== b.presentationMatch) return a.presentationMatch ? -1 : 1;
       if (a.productTypeMatch !== b.productTypeMatch) return a.productTypeMatch ? -1 : 1;
       if (a.groupMatch !== b.groupMatch) return a.groupMatch ? -1 : 1;
       if (b.includeHits.length !== a.includeHits.length) return b.includeHits.length - a.includeHits.length;
@@ -510,6 +492,7 @@ Deno.serve(async (req) => {
     let confidence = 0;
     if (matchedByNcmExact) confidence += 0.25; else confidence += 0.10;
     if (best.productTypeMatch) confidence += 0.25; else if (best.includeHits.length > 0) confidence += 0.15;
+    if (best.presentationMatch) confidence += 0.10;
     if (best.includeHits.length >= 3) confidence += 0.20;
     else if (best.includeHits.length >= 2) confidence += 0.15;
     else if (best.includeHits.length >= 1) confidence += 0.10;
@@ -521,7 +504,6 @@ Deno.serve(async (req) => {
     else if (bestRule.priority >= 10) confidence += 0.07;
     else if (bestRule.priority >= 5) confidence += 0.04;
     if (bestRule.data_origin === "imported") confidence += 0.05;
-    // Group bonus
     if (best.groupMatch) confidence += 0.05;
     if (groupConsistency === "coerente") confidence += 0.03;
 
@@ -599,18 +581,15 @@ Deno.serve(async (req) => {
       used_informed_cst: usedInformedCst,
       auto_suggested_cst: autoSuggestedCst,
       data_origin: bestRule.data_origin,
-      // Semantic
       normalized_description: norm.normalized_description,
       matched_keywords: best.includeHits,
       excluded_keywords_hit: excludedRules.map(e => (e.rule.keyword_exclude || []).filter(k =>
         norm.strong_tokens.includes(removeAccents(k.toLowerCase())) || norm.normalized_description.includes(removeAccents(k.toLowerCase()))
       )).flat(),
-      // Group
       inferred_macro_group: groupInference.inferred_macro_group,
       inferred_subgroup: groupInference.inferred_subgroup,
       informed_group: informedGroup || "",
       group_consistency_status: groupConsistency,
-      // Classification
       product_family: bestRule.product_family || classification.product_family,
       product_type: bestRule.product_type || classification.product_type,
       presentation_type: bestRule.presentation_type || classification.presentation_type,
