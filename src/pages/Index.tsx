@@ -40,6 +40,7 @@ const Index = () => {
           ncm: data.ncm,
           cst_icms: data.cst_icms || undefined,
           marca: data.marca || undefined,
+          grupo: data.grupo || undefined,
         },
       });
 
