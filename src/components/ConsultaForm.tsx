@@ -3,7 +3,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2 } from "lucide-react";
+
+const MACROGROUPS = [
+  { value: "carnes_bovinas", label: "Carnes Bovinas" },
+  { value: "carnes_suinas", label: "Carnes Suínas" },
+  { value: "aves", label: "Aves" },
+  { value: "pescados", label: "Pescados" },
+  { value: "frios_embutidos", label: "Frios e Embutidos" },
+  { value: "queijos", label: "Queijos" },
+  { value: "laticinios", label: "Laticínios" },
+  { value: "hortifruti", label: "Hortifruti" },
+  { value: "ovos_mel", label: "Ovos e Mel" },
+  { value: "basicos_graos", label: "Básicos e Grãos" },
+  { value: "farinhas_derivados", label: "Farinhas e Derivados" },
+  { value: "temperos_especiarias", label: "Temperos e Especiarias" },
+  { value: "mercearia_doce", label: "Mercearia Doce" },
+  { value: "mercearia_salgada", label: "Mercearia Salgada" },
+  { value: "congelados_prontos", label: "Congelados e Prontos" },
+  { value: "bebidas", label: "Bebidas" },
+  { value: "bazar_utilidades", label: "Bazar e Utilidades" },
+  { value: "higiene_perfumaria", label: "Higiene e Perfumaria" },
+  { value: "limpeza", label: "Limpeza" },
+  { value: "uso_interno_insumos", label: "Uso Interno / Insumos" },
+];
 
 export interface ConsultaFormData {
   ean: string;
@@ -11,6 +35,7 @@ export interface ConsultaFormData {
   ncm: string;
   cst_icms: string;
   marca: string;
+  grupo: string;
 }
 
 interface ConsultaFormProps {
@@ -25,6 +50,7 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
     ncm: "",
     cst_icms: "",
     marca: "",
+    grupo: "",
   });
 
   const handleChange = (field: keyof ConsultaFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +108,7 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
             </Label>
             <Input
               id="descricao"
-              placeholder="Ex: Preparação alimentícia composta"
+              placeholder="Ex: MANTEIGA TIROLEZ SEM SAL 200 GR"
               value={form.descricao}
               onChange={handleChange("descricao")}
               required
@@ -102,7 +128,7 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Se não souber o CST, deixe em branco. O sistema tentará sugerir o CST mais adequado para a situação informada.
+                Se não souber o CST, deixe em branco. O sistema tentará sugerir o CST mais adequado.
               </p>
             </div>
             <div className="space-y-2">
@@ -116,6 +142,29 @@ export function ConsultaForm({ onSubmit, isLoading }: ConsultaFormProps) {
                 onChange={handleChange("marca")}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="grupo" className="text-sm font-medium">
+              Grupo do item <span className="text-muted-foreground text-xs">(opcional)</span>
+            </Label>
+            <Select
+              value={form.grupo}
+              onValueChange={(val) => setForm((prev) => ({ ...prev, grupo: val === "__none__" ? "" : val }))}
+            >
+              <SelectTrigger id="grupo">
+                <SelectValue placeholder="Selecione o grupo (ou deixe para inferir)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Inferir automaticamente</SelectItem>
+                {MACROGROUPS.map((g) => (
+                  <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Se não informar, o sistema infere o grupo pela descrição do produto.
+            </p>
           </div>
 
           <Button
