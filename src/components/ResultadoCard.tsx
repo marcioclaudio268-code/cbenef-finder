@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle, AlertTriangle, XCircle, ExternalLink,
-  Clock, Shield, Scale, Info, FileText, Tag, Truck, MessageSquare
+  Clock, Shield, Scale, Info, FileText, Tag, Truck, MessageSquare, Layers
 } from "lucide-react";
 
 export interface CbenefResult {
@@ -34,15 +34,17 @@ export interface CbenefResult {
   used_informed_cst: boolean;
   auto_suggested_cst: boolean;
   data_origin?: string;
-  // Semantic fields
   normalized_description?: string;
   matched_keywords?: string[];
   excluded_keywords_hit?: string[];
+  inferred_macro_group?: string;
+  inferred_subgroup?: string;
+  informed_group?: string;
+  group_consistency_status?: string;
   product_family?: string;
   product_type?: string;
   presentation_type?: string;
   output_st_applicable?: boolean | null;
-  output_trib_code?: string;
   output_cfop?: string;
   decision_reason?: string;
 }
@@ -96,13 +98,22 @@ function formatLabel(val: string | undefined | null): string {
   return val.charAt(0).toUpperCase() + val.slice(1).replace(/_/g, " ");
 }
 
+function getGroupConsistencyLabel(status: string | undefined) {
+  switch (status) {
+    case "coerente": return { text: "Grupo coerente com a descrição", color: "text-success" };
+    case "divergente": return { text: "Grupo informado diverge da descrição", color: "text-warning" };
+    case "inferido": return { text: "Grupo inferido automaticamente", color: "text-primary" };
+    default: return { text: "Grupo não identificado", color: "text-muted-foreground" };
+  }
+}
+
 export function ResultadoCard({ result }: ResultadoCardProps) {
   const isLowConfidence = result.confidence_level === "low";
   const cstLabel = getCstLabel(result.cst_source);
   const CstIcon = cstLabel.icon;
 
   const hasSemanticInfo = result.product_family || result.product_type;
-  const hasTribInfo = result.output_trib_code || result.output_cfop;
+  const hasGroupInfo = result.inferred_macro_group || result.informed_group;
 
   return (
     <Card className="w-full max-w-2xl mx-auto mt-6 shadow-lg border-border/60 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -144,9 +155,16 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               Verifique os dados informados ou consulte a legislação vigente do estado de São Paulo.
             </p>
             {getConfidenceBadge(result.confidence_level, result.confidence_score)}
-            {/* Show identified type even on low confidence */}
-            {hasSemanticInfo && (
+            {hasGroupInfo && (
               <div className="mt-4 text-left rounded-lg bg-secondary/50 p-3 space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Grupo identificado</p>
+                <p className="text-sm text-foreground">
+                  {formatLabel(result.inferred_macro_group)} → {formatLabel(result.inferred_subgroup)}
+                </p>
+              </div>
+            )}
+            {hasSemanticInfo && (
+              <div className="mt-2 text-left rounded-lg bg-secondary/50 p-3 space-y-1">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo fiscal identificado na descrição</p>
                 <p className="text-sm text-foreground">
                   {formatLabel(result.product_family)} → {formatLabel(result.product_type)} → {formatLabel(result.presentation_type)}
@@ -175,6 +193,26 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               </div>
             )}
 
+            {/* Grupo identificado */}
+            {hasGroupInfo && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Grupo identificado</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <InfoBlock label="Grupo inferido" value={formatLabel(result.inferred_macro_group)} />
+                  <InfoBlock label="Subgrupo inferido" value={formatLabel(result.inferred_subgroup)} />
+                  {result.informed_group && <InfoBlock label="Grupo informado" value={formatLabel(result.informed_group)} />}
+                </div>
+                {result.group_consistency_status && (
+                  <p className={`text-xs ${getGroupConsistencyLabel(result.group_consistency_status).color}`}>
+                    {getGroupConsistencyLabel(result.group_consistency_status).text}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Tipo fiscal identificado */}
             {hasSemanticInfo && (
               <div className="space-y-2">
@@ -190,13 +228,13 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
               </div>
             )}
 
-            {/* Tributação sugerida */}
+            {/* Tributação sugerida — SEM TRIB */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Scale className="w-4 h-4 text-primary" />
                 <p className="text-sm font-semibold text-foreground">Tributação sugerida</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CST Final</p>
                   <p className="text-lg font-bold font-mono text-foreground">{result.final_cst_icms || "—"}</p>
@@ -210,10 +248,6 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                   <p className="text-lg font-bold font-mono text-foreground">
                     {result.output_st_applicable === true ? "Sim" : result.output_st_applicable === false ? "Não" : "—"}
                   </p>
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Cód. Tributação</p>
-                  <p className="text-lg font-bold font-mono text-foreground">{result.output_trib_code || "—"}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CFOP</p>
@@ -242,6 +276,14 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                     <span className="text-xs text-muted-foreground">Palavras-chave:</span>
                     {result.matched_keywords.map((kw, i) => (
                       <Badge key={i} variant="outline" className="text-xs">{kw}</Badge>
+                    ))}
+                  </div>
+                )}
+                {result.excluded_keywords_hit && result.excluded_keywords_hit.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="text-xs text-muted-foreground">Excluídas:</span>
+                    {result.excluded_keywords_hit.map((kw, i) => (
+                      <Badge key={i} variant="destructive" className="text-xs">{kw}</Badge>
                     ))}
                   </div>
                 )}
