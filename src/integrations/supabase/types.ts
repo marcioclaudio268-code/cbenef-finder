@@ -34,6 +34,7 @@ export type Database = {
           legal_basis_summary: string | null
           legal_basis_url: string | null
           legal_url: string | null
+          macro_group: string | null
           ncm: string
           output_cfop: string | null
           output_cst_icms: string | null
@@ -45,6 +46,7 @@ export type Database = {
           product_type: string | null
           rule_version_id: string | null
           state: string
+          subgroup: string | null
           suggested_cst_icms: string | null
           updated_at: string
         }
@@ -67,6 +69,7 @@ export type Database = {
           legal_basis_summary?: string | null
           legal_basis_url?: string | null
           legal_url?: string | null
+          macro_group?: string | null
           ncm: string
           output_cfop?: string | null
           output_cst_icms?: string | null
@@ -78,6 +81,7 @@ export type Database = {
           product_type?: string | null
           rule_version_id?: string | null
           state?: string
+          subgroup?: string | null
           suggested_cst_icms?: string | null
           updated_at?: string
         }
@@ -100,6 +104,7 @@ export type Database = {
           legal_basis_summary?: string | null
           legal_basis_url?: string | null
           legal_url?: string | null
+          macro_group?: string | null
           ncm?: string
           output_cfop?: string | null
           output_cst_icms?: string | null
@@ -111,6 +116,7 @@ export type Database = {
           product_type?: string | null
           rule_version_id?: string | null
           state?: string
+          subgroup?: string | null
           suggested_cst_icms?: string | null
           updated_at?: string
         }
@@ -120,6 +126,120 @@ export type Database = {
             columns: ["rule_version_id"]
             isOneToOne: false
             referencedRelation: "rule_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_group_aliases: {
+        Row: {
+          alias: string
+          created_at: string
+          group_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          group_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_group_aliases_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "classification_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_group_keywords: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          keyword: string
+          match_type: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          keyword: string
+          match_type?: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          keyword?: string
+          match_type?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_group_keywords_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "classification_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classification_groups: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          level: number
+          name: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          level?: number
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classification_groups_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "classification_groups"
             referencedColumns: ["id"]
           },
         ]
