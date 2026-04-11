@@ -36,6 +36,7 @@ export type Database = {
           legal_url: string | null
           macro_group: string | null
           ncm: string
+          operation_destination_type: string
           output_cfop: string | null
           output_cst_icms: string | null
           output_icms_rate: number | null
@@ -45,11 +46,23 @@ export type Database = {
           priority: number
           product_family: string | null
           product_type: string | null
+          replaced_by_rule_id: string | null
+          restriction_notes: string | null
+          rule_confidence: string | null
+          rule_origin: string | null
           rule_version_id: string | null
           state: string
+          status_reason: string | null
+          st_scope: string
           subgroup: string | null
           suggested_cst_icms: string | null
+          tax_regime_scope: string
           updated_at: string
+          valid_from: string | null
+          valid_to: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_status: string
         }
         Insert: {
           application_context?: string | null
@@ -72,6 +85,7 @@ export type Database = {
           legal_url?: string | null
           macro_group?: string | null
           ncm: string
+          operation_destination_type?: string
           output_cfop?: string | null
           output_cst_icms?: string | null
           output_icms_rate?: number | null
@@ -81,11 +95,23 @@ export type Database = {
           priority?: number
           product_family?: string | null
           product_type?: string | null
+          replaced_by_rule_id?: string | null
+          restriction_notes?: string | null
+          rule_confidence?: string | null
+          rule_origin?: string | null
           rule_version_id?: string | null
           state?: string
+          status_reason?: string | null
+          st_scope?: string
           subgroup?: string | null
           suggested_cst_icms?: string | null
+          tax_regime_scope?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string
         }
         Update: {
           application_context?: string | null
@@ -108,6 +134,7 @@ export type Database = {
           legal_url?: string | null
           macro_group?: string | null
           ncm?: string
+          operation_destination_type?: string
           output_cfop?: string | null
           output_cst_icms?: string | null
           output_icms_rate?: number | null
@@ -117,11 +144,23 @@ export type Database = {
           priority?: number
           product_family?: string | null
           product_type?: string | null
+          replaced_by_rule_id?: string | null
+          restriction_notes?: string | null
+          rule_confidence?: string | null
+          rule_origin?: string | null
           rule_version_id?: string | null
           state?: string
+          status_reason?: string | null
+          st_scope?: string
           subgroup?: string | null
           suggested_cst_icms?: string | null
+          tax_regime_scope?: string
           updated_at?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_status?: string
         }
         Relationships: [
           {
