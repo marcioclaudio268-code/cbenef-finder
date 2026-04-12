@@ -50,11 +50,17 @@ const resultFixture: CbenefResult = {
 };
 
 describe("ResultadoCard", () => {
-  it("renders the TRIB output as part of the suggested taxation package", () => {
+  it("renders TRIB only once in the central outputs and keeps contextual details separate", () => {
     render(<ResultadoCard result={resultFixture} />);
 
-    expect(screen.getAllByText("TRIB")).toHaveLength(2);
-    expect(screen.getAllByText("TRIB123")).toHaveLength(2);
-    expect(screen.getByText(/Vers/)).toHaveTextContent("base-ativa-2026-04");
+    expect(screen.getAllByText("TRIB")).toHaveLength(1);
+    expect(screen.getAllByText("TRIB123")).toHaveLength(1);
+    expect(screen.getAllByText("CFOP")).toHaveLength(1);
+    expect(screen.queryByText("Tributacao sugerida")).not.toBeInTheDocument();
+    expect(screen.queryByText("CST Final")).not.toBeInTheDocument();
+    expect(screen.getByText("Contexto complementar")).toBeInTheDocument();
+    expect(screen.getByText("ST Aplicavel")).toBeInTheDocument();
+    expect(screen.getByText("NCM Considerado")).toBeInTheDocument();
+    expect(screen.getByText(/Versao:/)).toHaveTextContent("base-ativa-2026-04");
   });
 });
