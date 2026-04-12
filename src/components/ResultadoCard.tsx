@@ -1,54 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import type { CbenefResult } from "@/types/cbenef";
 import {
   CheckCircle, AlertTriangle, XCircle, ExternalLink,
   Clock, Shield, Scale, Info, FileText, Tag, Truck, MessageSquare, Layers
 } from "lucide-react";
-
-export interface CbenefResult {
-  cbenef_code: string;
-  informed_cst_icms: string;
-  suggested_cst_icms: string;
-  final_cst_icms: string;
-  cst_source: "informado" | "sugerido" | "ajustado" | "none";
-  cst_warning?: string;
-  confidence_score: number;
-  confidence_level: "high" | "medium" | "low";
-  matched_rule_id: string | null;
-  application_context: string;
-  legal_basis_name: string;
-  legal_basis_summary: string;
-  legal_basis_url: string | null;
-  rule_version: {
-    version_label: string;
-    version_code: string | null;
-    published_at: string;
-  } | null;
-  last_updated_at: string;
-  input_ncm: string;
-  matched_ncm: string;
-  explanation: string;
-  matched_by_ncm_exact: boolean;
-  matched_by_ncm_prefix: boolean;
-  keyword_match_count: number;
-  used_informed_cst: boolean;
-  auto_suggested_cst: boolean;
-  data_origin?: string;
-  normalized_description?: string;
-  matched_keywords?: string[];
-  excluded_keywords_hit?: string[];
-  inferred_macro_group?: string;
-  inferred_subgroup?: string;
-  informed_group?: string;
-  group_consistency_status?: string;
-  product_family?: string;
-  product_type?: string;
-  presentation_type?: string;
-  output_st_applicable?: boolean | null;
-  output_icms_rate?: number | null;
-  output_cfop?: string;
-  decision_reason?: string;
-}
 
 interface ResultadoCardProps {
   result: CbenefResult;
@@ -112,6 +68,7 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
   const isLowConfidence = result.confidence_level === "low";
   const cstLabel = getCstLabel(result.cst_source);
   const CstIcon = cstLabel.icon;
+  const outputTribCode = result.output_trib_code || "—";
 
   const hasSemanticInfo = result.product_family || result.product_type;
   const hasGroupInfo = result.inferred_macro_group || result.informed_group;
@@ -184,7 +141,7 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                 </div>
                 {getConfidenceBadge(result.confidence_level, result.confidence_score)}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">%ICMS saída</p>
                   <p className="text-2xl font-bold font-mono text-primary">
@@ -202,6 +159,10 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CFOP</p>
                   <p className="text-2xl font-bold font-mono text-primary">{result.output_cfop || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">TRIB</p>
+                  <p className="text-2xl font-bold font-mono text-primary">{outputTribCode}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">cBenef</p>
@@ -268,7 +229,7 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                 <Scale className="w-4 h-4 text-primary" />
                 <p className="text-sm font-semibold text-foreground">Tributação sugerida</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CST Final</p>
                   <p className="text-lg font-bold font-mono text-foreground">{result.final_cst_icms || "—"}</p>
@@ -286,6 +247,10 @@ export function ResultadoCard({ result }: ResultadoCardProps) {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">CFOP</p>
                   <p className="text-lg font-bold font-mono text-foreground">{result.output_cfop || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">TRIB</p>
+                  <p className="text-lg font-bold font-mono text-foreground">{result.output_trib_code || "—"}</p>
                 </div>
               </div>
               <div>

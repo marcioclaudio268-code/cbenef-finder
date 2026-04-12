@@ -1,9 +1,18 @@
 import { useState, useEffect } from "react";
 import { ConsultaForm, type ConsultaFormData } from "@/components/ConsultaForm";
-import { ResultadoCard, type CbenefResult } from "@/components/ResultadoCard";
+import { ResultadoCard } from "@/components/ResultadoCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { FileText, Clock } from "lucide-react";
+import type { CbenefResult, CbenefRuleVersion } from "@/types/cbenef";
+
+function formatRuleVersion(version: Pick<CbenefRuleVersion, "version_code" | "version_label">) {
+  return version.version_code || version.version_label;
+}
+
+function formatRuleVersionDate(publishedAt: string) {
+  return new Date(publishedAt).toLocaleDateString("pt-BR");
+}
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,21 +20,31 @@ const Index = () => {
   const [baseInfo, setBaseInfo] = useState<{ version: string; date: string } | null>(null);
 
   useEffect(() => {
-    // Fetch latest rule version for footer indicator
-    supabase
-      .from("cbenef_rules")
-      .select("updated_at")
-      .eq("is_active", true)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setBaseInfo({
-            version: "MVP Seed v1",
-            date: new Date(data[0].updated_at).toLocaleDateString("pt-BR"),
-          });
-        }
+    let isMounted = true;
+
+    const loadCurrentBaseInfo = async () => {
+      const { data } = await supabase
+        .from("rule_versions")
+        .select("version_label, version_code, published_at, created_at")
+        .eq("is_current", true)
+        .order("published_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isMounted || !data) return;
+
+      setBaseInfo({
+        version: formatRuleVersion(data),
+        date: formatRuleVersionDate(data.published_at || data.created_at),
       });
+    };
+
+    void loadCurrentBaseInfo();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleConsulta = async (data: ConsultaFormData) => {
@@ -45,7 +64,15 @@ const Index = () => {
       });
 
       if (error) throw error;
-      setResult(response as CbenefResult);
+      const typedResponse = response as CbenefResult;
+      setResult(typedResponse);
+
+      if (typedResponse.rule_version) {
+        setBaseInfo({
+          version: formatRuleVersion(typedResponse.rule_version),
+          date: formatRuleVersionDate(typedResponse.rule_version.published_at),
+        });
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro desconhecido";
       toast({

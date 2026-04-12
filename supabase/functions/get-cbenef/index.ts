@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import type { CbenefResult, CbenefRuleVersion } from "./contract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -213,6 +214,7 @@ interface CbenefRule {
   output_cst_icms: string | null;
   output_cfop: string | null;
   output_icms_rate: number | null;
+  output_trib_code: string | null;
   decision_reason: string | null;
   legal_basis: string | null;
   legal_url: string | null;
@@ -326,7 +328,7 @@ function buildLowConfidenceResponse(
   groupInference: { inferred_macro_group: string; inferred_subgroup: string },
   informedGroup: string | null,
   extra: Record<string, unknown> = {}
-) {
+): CbenefResult {
   return {
     cbenef_code: "", informed_cst_icms: informedCst || "",
     suggested_cst_icms: "", final_cst_icms: "", cst_source: "none",
@@ -352,6 +354,7 @@ function buildLowConfidenceResponse(
     product_type: classification.product_type,
     presentation_type: classification.presentation_type,
     output_st_applicable: null, output_cfop: "",
+    output_trib_code: "",
     output_icms_rate: null,
     decision_reason: extra.decision_reason ?? "",
   };
@@ -542,7 +545,7 @@ Deno.serve(async (req) => {
     else explanation = `Confiança insuficiente para classificação segura. ${decisionReason}`;
 
     // Rule version
-    let ruleVersion = null;
+    let ruleVersion: CbenefRuleVersion | null = null;
     if (bestRule.rule_version_id) {
       const { data: rv } = await supabase.from("rule_versions")
         .select("version_label, version_code, published_at, created_at").eq("id", bestRule.rule_version_id).single();
@@ -558,7 +561,7 @@ Deno.serve(async (req) => {
 
     const legalBasisUrl = bestRule.legal_basis_url || bestRule.legal_url || null;
 
-    return new Response(JSON.stringify({
+    const response: CbenefResult = {
       cbenef_code: bestRule.cbenef_code,
       informed_cst_icms: informedCst || "",
       suggested_cst_icms: bestRule.suggested_cst_icms || bestRule.cst_icms || "",
@@ -597,9 +600,12 @@ Deno.serve(async (req) => {
       presentation_type: bestRule.presentation_type || classification.presentation_type,
       output_st_applicable: bestRule.output_st_applicable ?? null,
       output_cfop: bestRule.output_cfop || "",
+      output_trib_code: bestRule.output_trib_code || "",
       output_icms_rate: bestRule.output_icms_rate ?? null,
       decision_reason: decisionReason,
-    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    };
+
+    return new Response(JSON.stringify(response), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }),
