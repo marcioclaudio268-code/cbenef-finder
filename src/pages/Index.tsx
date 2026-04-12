@@ -10,8 +10,18 @@ function formatRuleVersion(version: Pick<CbenefRuleVersion, "version_code" | "ve
   return version.version_code || version.version_label;
 }
 
-function formatRuleVersionDate(publishedAt: string) {
-  return new Date(publishedAt).toLocaleDateString("pt-BR");
+function formatRuleVersionDate(publishedAt?: string | null, fallbackDate?: string | null) {
+  return new Date(publishedAt || fallbackDate || Date.now()).toLocaleDateString("pt-BR");
+}
+
+interface ActiveBaseVersionRow {
+  updated_at: string;
+  rule_version: {
+    version_label: string;
+    version_code: string | null;
+    published_at: string | null;
+    is_current: boolean;
+  } | null;
 }
 
 const Index = () => {
@@ -24,19 +34,28 @@ const Index = () => {
 
     const loadCurrentBaseInfo = async () => {
       const { data } = await supabase
-        .from("rule_versions")
-        .select("version_label, version_code, published_at, created_at")
-        .eq("is_current", true)
-        .order("published_at", { ascending: false, nullsFirst: false })
-        .order("created_at", { ascending: false })
+        .from("cbenef_rules")
+        .select(`
+          updated_at,
+          rule_version:rule_versions (
+            version_label,
+            version_code,
+            published_at,
+            is_current
+          )
+        `)
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (!isMounted || !data) return;
+      const activeBase = data as ActiveBaseVersionRow | null;
+
+      if (!isMounted || !activeBase?.rule_version?.is_current) return;
 
       setBaseInfo({
-        version: formatRuleVersion(data),
-        date: formatRuleVersionDate(data.published_at || data.created_at),
+        version: formatRuleVersion(activeBase.rule_version),
+        date: formatRuleVersionDate(activeBase.rule_version.published_at, activeBase.updated_at),
       });
     };
 
@@ -70,7 +89,7 @@ const Index = () => {
       if (typedResponse.rule_version) {
         setBaseInfo({
           version: formatRuleVersion(typedResponse.rule_version),
-          date: formatRuleVersionDate(typedResponse.rule_version.published_at),
+          date: formatRuleVersionDate(typedResponse.rule_version.published_at, typedResponse.last_updated_at),
         });
       }
     } catch (err: unknown) {

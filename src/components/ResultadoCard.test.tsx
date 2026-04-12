@@ -53,8 +53,8 @@ describe("ResultadoCard", () => {
   it("renders the TRIB output as part of the suggested taxation package", () => {
     render(<ResultadoCard result={resultFixture} />);
 
-    expect(screen.getByText("TRIB")).toBeInTheDocument();
-    expect(screen.getByText("TRIB123")).toBeInTheDocument();
+    expect(screen.getAllByText("TRIB")).toHaveLength(2);
+    expect(screen.getAllByText("TRIB123")).toHaveLength(2);
     expect(screen.getByText(/Vers/)).toHaveTextContent("base-ativa-2026-04");
   });
 });
