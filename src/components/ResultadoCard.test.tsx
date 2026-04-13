@@ -13,7 +13,7 @@ const resultFixture: CbenefResult = {
   confidence_score: 0.92,
   confidence_level: "high",
   matched_rule_id: "rule-1",
-  application_context: "Operacao interna - Estado de Sao Paulo",
+  application_context: "Operação interna - Estado de São Paulo",
   legal_basis_name: "Portaria CAT",
   legal_basis_summary: "Resumo legal",
   legal_basis_url: "https://example.com/legal",
@@ -25,7 +25,7 @@ const resultFixture: CbenefResult = {
   last_updated_at: "2026-04-12T00:00:00.000Z",
   input_ncm: "12345678",
   matched_ncm: "12345678",
-  explanation: "Regra selecionada com alta confianca.",
+  explanation: "Regra selecionada com alta confiança.",
   matched_by_ncm_exact: true,
   matched_by_ncm_prefix: false,
   keyword_match_count: 2,
@@ -46,7 +46,7 @@ const resultFixture: CbenefResult = {
   output_icms_rate: 12,
   output_cfop: "5405",
   output_trib_code: "TRIB123",
-  decision_reason: "Compatibilidade de NCM e descricao.",
+  decision_reason: "Compatibilidade de NCM e descrição.",
 };
 
 describe("ResultadoCard", () => {
@@ -56,11 +56,11 @@ describe("ResultadoCard", () => {
     expect(screen.getAllByText("TRIB")).toHaveLength(1);
     expect(screen.getAllByText("TRIB123")).toHaveLength(1);
     expect(screen.getAllByText("CFOP")).toHaveLength(1);
-    expect(screen.queryByText("Tributacao sugerida")).not.toBeInTheDocument();
+    expect(screen.queryByText("Tributação sugerida")).not.toBeInTheDocument();
     expect(screen.queryByText("CST Final")).not.toBeInTheDocument();
     expect(screen.getByText("Contexto complementar")).toBeInTheDocument();
-    expect(screen.getByText("ST Aplicavel")).toBeInTheDocument();
+    expect(screen.getByText("ST Aplicável")).toBeInTheDocument();
     expect(screen.getByText("NCM Considerado")).toBeInTheDocument();
-    expect(screen.getByText(/Versao:/)).toHaveTextContent("base-ativa-2026-04");
+    expect(screen.getByText(/Versão:/)).toHaveTextContent("base-ativa-2026-04");
   });
 });
