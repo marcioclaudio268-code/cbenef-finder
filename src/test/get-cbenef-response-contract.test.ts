@@ -10,6 +10,9 @@ import {
   type ResolvedRuleForResponse,
 } from "../../supabase/functions/get-cbenef/response.ts";
 
+const DEFAULT_APPLICATION_CONTEXT =
+  "Opera\u00e7\u00e3o interna \u2014 Estado de S\u00e3o Paulo";
+
 const REQUIRED_PUBLIC_KEYS = [
   "cbenef_code",
   "informed_cst_icms",
@@ -193,6 +196,7 @@ describe("get-cbenef public response contract", () => {
     expect(result.output_st_applicable).toBeNull();
     expect(result.rule_version).toBeNull();
     expect(result.last_updated_at).toBe("2026-04-13T12:00:00.000Z");
+    expect(result.application_context).toBe(DEFAULT_APPLICATION_CONTEXT);
   });
 
   it("keeps the shared frontend contract intact after API-style JSON serialization", () => {
@@ -202,6 +206,7 @@ describe("get-cbenef public response contract", () => {
           bestRule: buildResolvedRule({
             id: "rule-queijo-002",
             cbenef_code: "SP654321",
+            application_context: null,
             output_trib_code: "TRIB999",
             output_st_applicable: true,
             output_icms_rate: 12,
@@ -239,5 +244,6 @@ describe("get-cbenef public response contract", () => {
     expect(result.output_cfop).toBe("5102");
     expect(result.output_icms_rate).toBe(12);
     expect(result.output_st_applicable).toBe(true);
+    expect(result.application_context).toBe(DEFAULT_APPLICATION_CONTEXT);
   });
 });

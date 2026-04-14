@@ -5,7 +5,8 @@ import type {
   CbenefRuleVersion,
 } from "./contract.ts";
 
-const DEFAULT_APPLICATION_CONTEXT = "OperaÃ§Ã£o interna â€” Estado de SÃ£o Paulo";
+const DEFAULT_APPLICATION_CONTEXT =
+  "Opera\u00e7\u00e3o interna \u2014 Estado de S\u00e3o Paulo";
 
 export interface ProductClassification {
   product_family: string;
