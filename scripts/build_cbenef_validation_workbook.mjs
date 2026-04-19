@@ -91,15 +91,17 @@ function addSummarySheet(workbook, payload) {
     ["Base de entrada", payload.source_file],
     ["Aba lida", payload.source_sheet],
     ["Seam aplicada", payload.seam],
+    ["Campos comparados", payload.comparison_scope.join(", ")],
+    ["Campos informativos", payload.informative_only_fields.join(", ")],
     ["cBenef vazio", "Nao compara"],
     ["Conflitos internos", "INCONCLUSIVO automatico"],
   ];
-  sheet.getRange("A3:B7").values = metadata;
-  sheet.getRange("A3:A7").format = {
+  sheet.getRange("A3:B9").values = metadata;
+  sheet.getRange("A3:A9").format = {
     fill: "#E2E8F0",
     font: { bold: true, color: "#0F172A" },
   };
-  sheet.getRange("B3:B7").format.wrapText = true;
+  sheet.getRange("B3:B9").format.wrapText = true;
 
   const counts = payload.counts;
   const total = counts.total || 0;
@@ -120,32 +122,55 @@ function addSummarySheet(workbook, payload) {
     ["cBenef nao comparado", counts.cbenef_sem_comparacao || 0],
     ["Grupos em conflito", counts.grupos_em_conflito || 0],
   ];
-  sheet.getRange("A10:B13").values = supportingRows;
-  sheet.getRange("A10:A13").format = {
+  sheet.getRange("A12:B15").values = supportingRows;
+  sheet.getRange("A12:A15").format = {
     fill: "#E2E8F0",
     font: { bold: true, color: "#0F172A" },
   };
 
-  sheet.getRange("A15:H17").merge();
-  sheet.getRange("A15").values = [[
-    "A base foi comparada usando a mesma arvore de decisao do get-cbenef atual, com leitura direta das tabelas do Supabase via chave publica. " +
-      "Itens com conflito interno da base foram marcados como INCONCLUSIVO automaticamente. " +
-      "cBenef vazio na planilha foi tratado como nao comparar.",
+  const metricRows = Object.entries(payload.field_metrics || {}).map(([field, metrics]) => [
+    field,
+    metrics.applicable ?? 0,
+    metrics.matched ?? 0,
+    metrics.mismatched ?? 0,
+    metrics.inconclusivo ?? 0,
+    metrics.ignored ?? 0,
+    metrics.match_rate ?? null,
+  ]);
+  const metricMatrix = [
+    ["Campo", "Aplicavel", "BATEU", "DIVERGIU", "INCONCLUSIVO", "Nao comparado", "Aderencia"],
+    ...metricRows,
+  ];
+  const metricEndRow = 12 + metricMatrix.length - 1;
+  sheet.getRange(`D8:J${metricEndRow}`).values = metricMatrix;
+  applyHeaderStyle(sheet.getRange("D8:J8"));
+  sheet.getRange(`J9:J${metricEndRow}`).format.numberFormat = "0.0%";
+  sheet.getRange(`D9:J${metricEndRow}`).format.wrapText = true;
+
+  sheet.getRange("A18:J20").merge();
+  sheet.getRange("A18").values = [[
+    "A base foi comparada usando a mesma arvore de decisao do get-cbenef atual, sustentada por descricao + NCM. " +
+      "TRIB ficou apenas como campo informativo e nao influencia status, motivo de divergencia nem contagens finais. " +
+      "Itens com conflito interno da base foram marcados como INCONCLUSIVO automaticamente, e cBenef vazio foi tratado como nao comparar.",
   ]];
-  sheet.getRange("A15:H17").format = {
+  sheet.getRange("A18:J20").format = {
     fill: "#F8FAFC",
     font: { italic: true, color: "#334155" },
     wrapText: true,
     verticalAlignment: "top",
   };
 
-  sheet.getRange("A3:F13").format.rowHeightPx = 24;
-  sheet.getRange("A15:H17").format.rowHeightPx = 60;
-  sheet.getRange("A1:A17").format.columnWidthPx = 240;
-  sheet.getRange("B1:B17").format.columnWidthPx = 360;
-  sheet.getRange("D1:D17").format.columnWidthPx = 140;
-  sheet.getRange("E1:E17").format.columnWidthPx = 140;
-  sheet.getRange("F1:F17").format.columnWidthPx = 140;
+  sheet.getRange(`A3:J${metricEndRow}`).format.rowHeightPx = 24;
+  sheet.getRange("A18:J20").format.rowHeightPx = 60;
+  sheet.getRange("A1:A20").format.columnWidthPx = 240;
+  sheet.getRange("B1:B20").format.columnWidthPx = 420;
+  sheet.getRange("D1:D20").format.columnWidthPx = 120;
+  sheet.getRange("E1:E20").format.columnWidthPx = 110;
+  sheet.getRange("F1:F20").format.columnWidthPx = 110;
+  sheet.getRange("G1:G20").format.columnWidthPx = 110;
+  sheet.getRange("H1:H20").format.columnWidthPx = 130;
+  sheet.getRange("I1:I20").format.columnWidthPx = 130;
+  sheet.getRange("J1:J20").format.columnWidthPx = 110;
 
   return sheet;
 }

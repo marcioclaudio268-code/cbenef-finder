@@ -5,10 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
-import sys
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
@@ -16,8 +14,6 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
 
 from openpyxl import load_workbook
 
@@ -123,6 +119,14 @@ NOISE_TOKENS = {
     "pelo",
 }
 
+SCOPED_FIELDS = [
+    ("NCM", "NCM"),
+    ("CST", "CST_ICMS<S>"),
+    ("%ICMS", "% ICMS<S>"),
+    ("CFOP", "CFOP"),
+    ("cBenef", "cBenef"),
+]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -158,33 +162,6 @@ def parse_args() -> argparse.Namespace:
         help="Optional row limit for a quick smoke test.",
     )
     return parser.parse_args()
-
-
-def parse_env_file(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-
-    result: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        result[key] = value
-    return result
-
-
-def resolve_supabase_config() -> tuple[str, str]:
-    env = {**parse_env_file(Path(".env")), **os.environ}
-    url = env.get("VITE_SUPABASE_URL", "").strip()
-    key = env.get("VITE_SUPABASE_PUBLISHABLE_KEY", "").strip()
-    if not url or not key:
-        raise RuntimeError(
-            "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
-        )
-    return url.rstrip("/"), key
 
 
 def clean_text(value: Any) -> str:
@@ -350,45 +327,6 @@ def load_workbook_rows(path: Path, sheet_name: str, max_rows: int | None) -> lis
 
 def build_validation_key(row: dict[str, Any]) -> str:
     return f"{normalize_ncm(row['NCM'])}|{normalize_description_key(row['Descrição'])}"
-
-
-def fetch_json_page(base_url: str, table: str, params: dict[str, Any], headers: dict[str, str]) -> list[dict[str, Any]]:
-    query = urlencode({key: value for key, value in params.items() if value is not None})
-    url = f"{base_url}/rest/v1/{table}"
-    if query:
-        url = f"{url}?{query}"
-    request = Request(url, headers=headers, method="GET")
-    with urlopen(request, timeout=120) as response:
-        payload = response.read().decode("utf-8")
-    data = json.loads(payload)
-    if not isinstance(data, list):
-        raise RuntimeError(f"Unexpected response for {table}: {data!r}")
-    return data
-
-
-def fetch_all_table(
-    base_url: str,
-    table: str,
-    headers: dict[str, str],
-    *,
-    select: str = "*",
-    filters: dict[str, Any] | None = None,
-    page_size: int = 1000,
-) -> list[dict[str, Any]]:
-    params: dict[str, Any] = {"select": select, "limit": page_size}
-    if filters:
-        params.update(filters)
-
-    rows: list[dict[str, Any]] = []
-    offset = 0
-    while True:
-        params["offset"] = offset
-        page = fetch_json_page(base_url, table, params, headers)
-        rows.extend(page)
-        if len(page) < page_size:
-            break
-        offset += page_size
-    return rows
 
 
 @dataclass(slots=True)
@@ -985,7 +923,6 @@ def build_conflict_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             ("NCM", normalize_ncm),
             ("CST_ICMS<S>", normalize_cst),
             ("% ICMS<S>", normalize_percent),
-            ("Trib.", normalize_trib),
             ("CFOP", normalize_cfop),
             ("cBenef", normalize_cbenef),
         ):
@@ -1005,52 +942,102 @@ def build_conflict_map(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     return conflicts
 
 
+def build_field_comparisons(row: dict[str, Any], response: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    expected_ncm = normalize_ncm(row["NCM"])
+    returned_ncm = normalize_ncm(response.get("matched_ncm"))
+
+    expected_cst = normalize_cst(row["CST_ICMS<S>"])
+    returned_cst = normalize_cst(response.get("final_cst_icms"))
+
+    expected_icms = normalize_percent(row["% ICMS<S>"])
+    returned_icms = normalize_percent(response.get("output_icms_rate"))
+
+    expected_cfop = normalize_cfop(row["CFOP"])
+    returned_cfop = normalize_cfop(response.get("output_cfop"))
+
+    expected_cbenef = normalize_cbenef(row["cBenef"])
+    returned_cbenef = normalize_cbenef(response.get("cbenef_code"))
+
+    return {
+        "NCM": {
+            "applicable": True,
+            "matches": expected_ncm == returned_ncm,
+            "expected": expected_ncm,
+            "returned": returned_ncm,
+        },
+        "CST": {
+            "applicable": True,
+            "matches": expected_cst == returned_cst,
+            "expected": expected_cst,
+            "returned": returned_cst,
+        },
+        "%ICMS": {
+            "applicable": True,
+            "matches": compare_percent(row["% ICMS<S>"], response.get("output_icms_rate")),
+            "expected": expected_icms,
+            "returned": returned_icms,
+        },
+        "CFOP": {
+            "applicable": True,
+            "matches": expected_cfop == returned_cfop,
+            "expected": expected_cfop,
+            "returned": returned_cfop,
+        },
+        "cBenef": {
+            "applicable": bool(expected_cbenef),
+            "matches": expected_cbenef == returned_cbenef,
+            "expected": expected_cbenef,
+            "returned": returned_cbenef,
+        },
+    }
+
+
 def compare_row(
-    row: dict[str, Any],
-    response: dict[str, Any],
     conflict_reason: str | None,
+    field_comparisons: dict[str, dict[str, Any]],
 ) -> tuple[str, str]:
     if conflict_reason:
         return "INCONCLUSIVO", conflict_reason
 
     mismatches: list[str] = []
 
-    expected_ncm = normalize_ncm(row["NCM"])
-    returned_ncm = normalize_ncm(response.get("matched_ncm"))
-    if expected_ncm != returned_ncm:
-        mismatches.append(f"NCM esperado {expected_ncm} vs retornado {returned_ncm or '[vazio]'}")
-
-    expected_cst = normalize_cst(row["CST_ICMS<S>"])
-    returned_cst = normalize_cst(response.get("final_cst_icms"))
-    if expected_cst != returned_cst:
-        mismatches.append(f"CST esperado {expected_cst} vs retornado {returned_cst or '[vazio]'}")
-
-    if not compare_percent(row["% ICMS<S>"], response.get("output_icms_rate")):
+    for field_name in ("NCM", "CST", "%ICMS", "CFOP", "cBenef"):
+        comparison = field_comparisons[field_name]
+        if not comparison["applicable"] or comparison["matches"]:
+            continue
         mismatches.append(
-            f"%ICMS esperado {normalize_percent(row['% ICMS<S>'])} vs retornado {normalize_percent(response.get('output_icms_rate')) or '[vazio]'}",
+            f"{field_name} esperado {comparison['expected']} vs retornado {comparison['returned'] or '[vazio]'}",
         )
-
-    expected_trib = normalize_trib(row["Trib."])
-    returned_trib = normalize_trib(response.get("output_trib_code"))
-    if expected_trib != returned_trib:
-        mismatches.append(f"TRIB esperado {expected_trib} vs retornado {returned_trib or '[vazio]'}")
-
-    expected_cfop = normalize_cfop(row["CFOP"])
-    returned_cfop = normalize_cfop(response.get("output_cfop"))
-    if expected_cfop != returned_cfop:
-        mismatches.append(f"CFOP esperado {expected_cfop} vs retornado {returned_cfop or '[vazio]'}")
-
-    expected_cbenef = normalize_cbenef(row["cBenef"])
-    if expected_cbenef:
-        returned_cbenef = normalize_cbenef(response.get("cbenef_code"))
-        if expected_cbenef != returned_cbenef:
-            mismatches.append(
-                f"cBenef esperado {expected_cbenef} vs retornado {returned_cbenef or '[vazio]'}",
-            )
 
     if mismatches:
         return "DIVERGIU", "; ".join(mismatches)
     return "BATEU", ""
+
+
+def build_field_metrics() -> dict[str, dict[str, Any]]:
+    return {
+        field_name: {
+            "source_column": source_column,
+            "applicable": 0,
+            "matched": 0,
+            "mismatched": 0,
+            "ignored": 0,
+            "inconclusivo": 0,
+        }
+        for field_name, source_column in SCOPED_FIELDS
+    }
+
+
+def finalize_field_metrics(field_metrics: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    finalized: dict[str, dict[str, Any]] = {}
+    for field_name, metrics in field_metrics.items():
+        compared = metrics["matched"] + metrics["mismatched"]
+        finalized[field_name] = {
+            **metrics,
+            "compared": compared,
+            "match_rate": (metrics["matched"] / compared) if compared else None,
+        }
+    return finalized
 
 
 def main() -> int:
@@ -1059,12 +1046,6 @@ def main() -> int:
 
     rows = load_workbook_rows(args.input, args.sheet, args.max_rows)
     conflict_map = build_conflict_map(rows)
-    conflict_row_numbers = {
-        row_number
-        for conflict in conflict_map.values()
-        for row_number in conflict["rows"]
-    }
-
     supabase_cache = args.output_dir / "supabase_tables.json"
     fetcher = Path("scripts/fetch_cbenef_supabase.mjs").resolve()
     subprocess.run(
@@ -1089,17 +1070,33 @@ def main() -> int:
     status_counts = {"BATEU": 0, "DIVERGIU": 0, "INCONCLUSIVO": 0}
     cbenef_expected_count = 0
     cbenef_ignored_count = 0
+    field_metrics = build_field_metrics()
 
     for row in rows:
         response = classify_row(row, rules_by_exact, rules_by_prefix, taxonomy)
         conflict_reason = conflict_map.get(build_validation_key(row), {}).get("reason")
-        status, reason = compare_row(row, response, conflict_reason)
+        field_comparisons = build_field_comparisons(row, response)
+        status, reason = compare_row(conflict_reason, field_comparisons)
 
         expected_cbenef = normalize_cbenef(row["cBenef"])
         if expected_cbenef:
             cbenef_expected_count += 1
         else:
             cbenef_ignored_count += 1
+
+        for field_name, _ in SCOPED_FIELDS:
+            metrics = field_metrics[field_name]
+            comparison = field_comparisons[field_name]
+            if not comparison["applicable"]:
+                metrics["ignored"] += 1
+                continue
+            metrics["applicable"] += 1
+            if status == "INCONCLUSIVO":
+                metrics["inconclusivo"] += 1
+            elif comparison["matches"]:
+                metrics["matched"] += 1
+            else:
+                metrics["mismatched"] += 1
 
         result_row = {
             "Código": stringify_code(row["Código"]),
@@ -1131,6 +1128,8 @@ def main() -> int:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_file": str(args.input.resolve()),
         "source_sheet": args.sheet,
+        "comparison_scope": ["NCM", "CST", "%ICMS", "CFOP", "cBenef quando houver valor esperado"],
+        "informative_only_fields": ["TRIB", "CEST", "Dep.Nome", "Tipo produto"],
         "seam": (
             "Local validator that mirrors the current get-cbenef scoring path "
             "with Supabase anon-table reads for cbenef_rules, classification_groups, "
@@ -1145,6 +1144,7 @@ def main() -> int:
             "cbenef_sem_comparacao": cbenef_ignored_count,
             "grupos_em_conflito": len(conflict_map),
         },
+        "field_metrics": finalize_field_metrics(field_metrics),
         "conflicts": conflict_map,
         "columns": OUTPUT_COLUMNS,
         "rows": results,
@@ -1160,6 +1160,9 @@ def main() -> int:
                 "generated_at": output_payload["generated_at"],
                 "source_file": output_payload["source_file"],
                 "counts": output_payload["counts"],
+                "comparison_scope": output_payload["comparison_scope"],
+                "informative_only_fields": output_payload["informative_only_fields"],
+                "field_metrics": output_payload["field_metrics"],
                 "seam": output_payload["seam"],
             },
             ensure_ascii=False,
