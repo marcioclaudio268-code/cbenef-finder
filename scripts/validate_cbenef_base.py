@@ -575,6 +575,7 @@ def score_rule(
     score = 0.0
     exclude_hit = False
     include_hits: list[str] = []
+    description_pattern_hits: list[str] = []
 
     kw_exclude = [remove_accents(value).lower() for value in rule.get("keyword_exclude") or []]
     for token in kw_exclude:
@@ -599,6 +600,7 @@ def score_rule(
     for pattern in [remove_accents(value).lower() for value in rule.get("description_patterns") or []]:
         if pattern in normalized_desc:
             score += 8
+            description_pattern_hits.append(pattern)
 
     product_type_match = False
     rule_product_type = remove_accents(rule.get("product_type")).lower()
@@ -607,9 +609,11 @@ def score_rule(
             score += 15
             product_type_match = True
 
+    product_family_match = False
     rule_family = remove_accents(rule.get("product_family")).lower()
     if rule_family and inferred_family and rule_family == inferred_family:
         score += 5
+        product_family_match = True
 
     presentation_match = False
     rule_presentation = remove_accents(rule.get("presentation_type")).lower()
@@ -648,6 +652,8 @@ def score_rule(
         "score": score,
         "excludeHit": exclude_hit,
         "includeHits": include_hits,
+        "descriptionPatternHits": description_pattern_hits,
+        "productFamilyMatch": product_family_match,
         "productTypeMatch": product_type_match,
         "groupMatch": group_match,
         "presentationMatch": presentation_match,
@@ -661,38 +667,40 @@ def build_low_confidence_response(
     classification: dict[str, str],
     group_inference: dict[str, str],
     informed_group: str | None,
+    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    extra = extra or {}
     return {
         "cbenef_code": "",
         "informed_cst_icms": informed_cst or "",
         "suggested_cst_icms": "",
         "final_cst_icms": "",
         "cst_source": "none",
-        "confidence_score": 0,
+        "confidence_score": extra.get("confidence_score", 0),
         "confidence_level": "low",
         "matched_rule_id": None,
         "application_context": "Operacao interna - Estado de Sao Paulo",
         "legal_basis_name": "",
-        "legal_basis_summary": "",
+        "legal_basis_summary": extra.get("legal_basis_summary", ""),
         "legal_basis_url": None,
         "rule_version": None,
         "last_updated_at": datetime.now(timezone.utc).isoformat(),
         "input_ncm": ncm,
         "matched_ncm": "",
-        "explanation": "",
-        "matched_by_ncm_exact": False,
-        "matched_by_ncm_prefix": False,
+        "explanation": extra.get("explanation", ""),
+        "matched_by_ncm_exact": extra.get("matched_by_ncm_exact", False),
+        "matched_by_ncm_prefix": extra.get("matched_by_ncm_prefix", False),
         "keyword_match_count": 0,
         "used_informed_cst": False,
         "auto_suggested_cst": False,
         "data_origin": "",
         "normalized_description": normalized_description["normalized_description"],
         "matched_keywords": [],
-        "excluded_keywords_hit": [],
+        "excluded_keywords_hit": extra.get("excluded_keywords_hit", []),
         "inferred_macro_group": group_inference["inferred_macro_group"],
         "inferred_subgroup": group_inference["inferred_subgroup"],
         "informed_group": informed_group or "",
-        "group_consistency_status": "",
+        "group_consistency_status": extra.get("group_consistency_status", ""),
         "product_family": classification["product_family"],
         "product_type": classification["product_type"],
         "presentation_type": classification["presentation_type"],
@@ -700,7 +708,116 @@ def build_low_confidence_response(
         "output_cfop": "",
         "output_trib_code": "",
         "output_icms_rate": None,
-        "decision_reason": "",
+        "decision_reason": extra.get("decision_reason", ""),
+    }
+
+
+def scored_rule_sort_key(entry: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        0 if entry["presentationMatch"] else 1,
+        0 if entry["productTypeMatch"] else 1,
+        0 if entry["groupMatch"] else 1,
+        -len(entry["includeHits"]),
+        -len(entry["descriptionPatternHits"]),
+        -entry["score"],
+        -int(entry["rule"].get("priority", 0) or 0),
+    )
+
+
+def summarize_rule_evidence(entry: dict[str, Any]) -> dict[str, Any]:
+    strong_signal_count = sum(
+        1
+        for flag in (
+            bool(entry["includeHits"]),
+            bool(entry["descriptionPatternHits"]),
+            entry["productTypeMatch"],
+            entry["presentationMatch"],
+        )
+        if flag
+    )
+    weak_signal_count = sum(
+        1
+        for flag in (
+            entry["groupMatch"],
+            entry["productFamilyMatch"],
+        )
+        if flag
+    )
+    semantic_signature = "|".join(
+        [
+            str(len(entry["includeHits"])),
+            str(len(entry["descriptionPatternHits"])),
+            str(int(bool(entry["productTypeMatch"]))),
+            str(int(bool(entry["presentationMatch"]))),
+            str(int(bool(entry["groupMatch"]))),
+            str(int(bool(entry["productFamilyMatch"]))),
+        ]
+    )
+    return {
+        "strong_signal_count": strong_signal_count,
+        "weak_signal_count": weak_signal_count,
+        "semantic_signature": semantic_signature,
+        "meets_prefix_minimum": strong_signal_count > 0 or weak_signal_count >= 2,
+    }
+
+
+def build_safe_selection_low_confidence(
+    matched_by_ncm_prefix: bool,
+    decision_reason: str,
+    explanation: str,
+) -> dict[str, Any]:
+    return {
+        "kind": "low_confidence",
+        "confidence_score": 0.24 if matched_by_ncm_prefix else 0.32,
+        "decision_reason": decision_reason,
+        "explanation": explanation,
+        "legal_basis_summary": (
+            "Regras por prefixo encontradas sem evidencia minima para promover uma regra vencedora."
+            if matched_by_ncm_prefix
+            else "Regras concorrentes permaneceram empatadas em sinais semanticos e exigem validacao manual."
+        ),
+    }
+
+
+def select_safe_rule_candidate(
+    eligible: list[dict[str, Any]],
+    matched_by_ncm_prefix: bool,
+) -> dict[str, Any]:
+    ranked = sorted(eligible, key=scored_rule_sort_key)
+    if not ranked:
+        return build_safe_selection_low_confidence(
+            matched_by_ncm_prefix,
+            "Nenhuma regra elegivel apos o ranking.",
+            "Nao foi possivel identificar uma regra elegivel para a classificacao fiscal.",
+        )
+
+    best = ranked[0]
+    best_evidence = summarize_rule_evidence(best)
+
+    if matched_by_ncm_prefix and not best_evidence["meets_prefix_minimum"]:
+        return build_safe_selection_low_confidence(
+            True,
+            "Fallback por prefixo sem evidencia semantica minima.",
+            "As regras obtidas por prefixo de NCM nao trouxeram include hit, tipo, apresentacao ou combinacao minima de sinais para uma decisao segura.",
+        )
+
+    if len(ranked) > 1:
+        runner_up = ranked[1]
+        runner_up_evidence = summarize_rule_evidence(runner_up)
+        if best_evidence["semantic_signature"] == runner_up_evidence["semantic_signature"]:
+            return build_safe_selection_low_confidence(
+                matched_by_ncm_prefix,
+                "Empate fraco entre regras com a mesma assinatura semantica.",
+                (
+                    "A disputa entre regras vindas do fallback por prefixo permaneceu empatada em sinais semanticos e nao pode ser resolvida com seguranca."
+                    if matched_by_ncm_prefix
+                    else "As regras candidatas permaneceram empatadas em sinais semanticos e nao devem ser resolvidas apenas por prioridade ou ordem de entrada."
+                ),
+            )
+
+    return {
+        "kind": "resolved",
+        "winner": best,
     }
 
 
@@ -737,6 +854,7 @@ def classify_row(
     raw_description = normalize_description_request(row["Descrição"])
     ncm = normalize_ncm(row["NCM"])
     informed_cst = normalize_cst(row["CST_ICMS<S>"])
+    informed_group = None
 
     normalized_description = collapse_spaces(remove_accents(raw_description).lower())
     normalized_tokens = [token for token in normalized_description.split(" ") if token]
@@ -748,6 +866,15 @@ def classify_row(
 
     classification = infer_product_classification(strong_tokens)
     group_inference = infer_group_from_taxonomy(strong_tokens, normalized_description, taxonomy)
+    group_consistency = "ok"
+    if informed_group and group_inference["inferred_macro_group"] and informed_group != group_inference["inferred_macro_group"]:
+        group_consistency = "divergente"
+    elif informed_group and informed_group == group_inference["inferred_macro_group"]:
+        group_consistency = "coerente"
+    elif not informed_group and group_inference["inferred_macro_group"]:
+        group_consistency = "inferido"
+    elif not informed_group and not group_inference["inferred_macro_group"]:
+        group_consistency = "nao_identificado"
 
     desc_insufficient = len(strong_tokens) < 2 or len([token for token in strong_tokens if token not in {
         "produto",
@@ -777,12 +904,16 @@ def classify_row(
                 break
 
     if not candidate_rules:
-        response = build_low_confidence_response(ncm, informed_cst, {
+        return build_low_confidence_response(ncm, informed_cst, {
             "normalized_description": normalized_description,
-        }, classification, group_inference, None)
-        response["matched_by_ncm_exact"] = matched_by_ncm_exact
-        response["matched_by_ncm_prefix"] = matched_by_ncm_prefix
-        return response
+        }, classification, group_inference, informed_group, {
+            "legal_basis_summary": "Nenhuma regra encontrada para o NCM informado.",
+            "explanation": "Nao foi possivel encontrar uma regra correspondente para o NCM informado na base atual.",
+            "decision_reason": "Nenhuma regra encontrada.",
+            "matched_by_ncm_exact": matched_by_ncm_exact,
+            "matched_by_ncm_prefix": matched_by_ncm_prefix,
+            "group_consistency_status": group_consistency,
+        })
 
     scored = [
         score_rule(
@@ -794,34 +925,50 @@ def classify_row(
             classification["presentation_type"],
             group_inference["inferred_macro_group"],
             group_inference["inferred_subgroup"],
-            None,
+            informed_group,
         )
         for rule in candidate_rules
     ]
 
     eligible = [entry for entry in scored if not entry["excludeHit"]]
     excluded_rules = [entry for entry in scored if entry["excludeHit"]]
+    excluded_keywords_hit = [
+        token
+        for entry in excluded_rules
+        for token in (entry["rule"].get("keyword_exclude") or [])
+        if remove_accents(token).lower() in normalized_description
+        or remove_accents(token).lower() in strong_tokens
+    ]
 
     if not eligible:
-        response = build_low_confidence_response(ncm, informed_cst, {
+        return build_low_confidence_response(ncm, informed_cst, {
             "normalized_description": normalized_description,
-        }, classification, group_inference, None)
-        response["matched_by_ncm_exact"] = matched_by_ncm_exact
-        response["matched_by_ncm_prefix"] = matched_by_ncm_prefix
-        return response
+        }, classification, group_inference, informed_group, {
+            "confidence_score": 0.1,
+            "explanation": "As regras encontradas para este NCM foram eliminadas por conflito de palavras-chave com a descricao informada.",
+            "excluded_keywords_hit": excluded_keywords_hit,
+            "decision_reason": "Regras eliminadas por keyword_exclude.",
+            "matched_by_ncm_exact": matched_by_ncm_exact,
+            "matched_by_ncm_prefix": matched_by_ncm_prefix,
+            "group_consistency_status": group_consistency,
+        })
 
-    eligible.sort(
-        key=lambda entry: (
-            0 if entry["presentationMatch"] else 1,
-            0 if entry["productTypeMatch"] else 1,
-            0 if entry["groupMatch"] else 1,
-            -len(entry["includeHits"]),
-            -entry["score"],
-            -int(entry["rule"].get("priority", 0) or 0),
-        )
-    )
+    safe_selection = select_safe_rule_candidate(eligible, matched_by_ncm_prefix)
+    if safe_selection["kind"] == "low_confidence":
+        return build_low_confidence_response(ncm, informed_cst, {
+            "normalized_description": normalized_description,
+        }, classification, group_inference, informed_group, {
+            "confidence_score": safe_selection["confidence_score"],
+            "legal_basis_summary": safe_selection["legal_basis_summary"],
+            "explanation": safe_selection["explanation"],
+            "excluded_keywords_hit": excluded_keywords_hit,
+            "decision_reason": safe_selection["decision_reason"],
+            "matched_by_ncm_exact": matched_by_ncm_exact,
+            "matched_by_ncm_prefix": matched_by_ncm_prefix,
+            "group_consistency_status": group_consistency,
+        })
 
-    best = eligible[0]
+    best = safe_selection["winner"]
     best_rule = best["rule"]
 
     rule_cst = (
@@ -833,6 +980,7 @@ def classify_row(
 
     cst_source = "sugerido"
     final_cst = ""
+    cst_warning = ""
     used_informed_cst = False
     auto_suggested_cst = False
 
@@ -844,9 +992,100 @@ def classify_row(
         else:
             cst_source = "ajustado"
             final_cst = rule_cst
+            cst_warning = (
+                f"O CST informado ({informed_cst}) diverge do esperado ({rule_cst}) para este tipo de produto. "
+                "O sistema utilizou o CST da regra identificada."
+            )
     else:
         final_cst = rule_cst
         auto_suggested_cst = True
+
+    confidence = 0.25 if matched_by_ncm_exact else 0.10
+    if best["productTypeMatch"]:
+        confidence += 0.25
+    elif best["includeHits"]:
+        confidence += 0.15
+    if best["presentationMatch"]:
+        confidence += 0.10
+
+    if len(best["includeHits"]) >= 3:
+        confidence += 0.20
+    elif len(best["includeHits"]) >= 2:
+        confidence += 0.15
+    elif len(best["includeHits"]) >= 1:
+        confidence += 0.10
+
+    if cst_source == "informado":
+        confidence += 0.10
+    elif cst_source == "sugerido" and rule_cst:
+        confidence += 0.07
+    elif cst_source == "ajustado":
+        confidence += 0.03
+
+    if clean_text(best_rule.get("legal_basis_name")) and clean_text(best_rule.get("legal_basis_summary")):
+        confidence += 0.05
+
+    try:
+        priority = int(best_rule.get("priority", 0) or 0)
+    except (TypeError, ValueError):
+        priority = 0
+    if priority >= 15:
+        confidence += 0.10
+    elif priority >= 10:
+        confidence += 0.07
+    elif priority >= 5:
+        confidence += 0.04
+
+    if clean_text(best_rule.get("data_origin")) == "imported":
+        confidence += 0.05
+    if best["groupMatch"]:
+        confidence += 0.05
+    if group_consistency == "coerente":
+        confidence += 0.03
+
+    if desc_insufficient:
+        confidence = min(confidence, 0.55)
+        cst_warning = (f"{cst_warning} " if cst_warning else "") + (
+            "A descricao informada e insuficiente para diferenciar corretamente o tipo fiscal do item. "
+            "Informe uma descricao mais especifica."
+        )
+    if group_consistency == "divergente":
+        confidence -= 0.05
+        cst_warning = (f"{cst_warning} " if cst_warning else "") + (
+            "O grupo informado nao parece compativel com a descricao do item. "
+            "A classificacao foi priorizada com base no NCM e na descricao normalizada."
+        )
+    if (
+        classification["product_type"] != "nao_identificado"
+        and clean_text(best_rule.get("product_type"))
+        and remove_accents(best_rule.get("product_type")).lower() != classification["product_type"]
+    ):
+        confidence -= 0.15
+        cst_warning = (f"{cst_warning} " if cst_warning else "") + (
+            f'Possivel conflito: o NCM aponta para "{clean_text(best_rule.get("product_type"))}" '
+            f'mas a descricao sugere "{classification["product_type"]}".'
+        )
+
+    confidence = max(0, min(confidence, 1))
+    confidence = round(confidence, 2)
+    confidence_level = "high" if confidence >= 0.85 else "medium" if confidence >= 0.65 else "low"
+
+    decision_reason = clean_text(best_rule.get("decision_reason"))
+    if not decision_reason:
+        if best["productTypeMatch"]:
+            decision_reason = (
+                f'Produto identificado como "{classification["product_type"]}" '
+                "pela descricao normalizada, compativel com a regra."
+            )
+        else:
+            decision_reason = "Regra selecionada por aderencia de palavras-chave e prioridade."
+
+    if confidence_level == "high":
+        explanation = f"Classificacao com alta confianca. {decision_reason}"
+    elif confidence_level == "medium":
+        explanation = f"Classificacao com confianca media. {decision_reason} Recomenda-se validacao."
+    else:
+        explanation = f"Confianca insuficiente para classificacao segura. {decision_reason}"
 
     response = {
         "cbenef_code": clean_text(best_rule.get("cbenef_code")),
@@ -856,8 +1095,9 @@ def classify_row(
         or "",
         "final_cst_icms": final_cst,
         "cst_source": cst_source,
-        "confidence_score": None,
-        "confidence_level": "",
+        "cst_warning": cst_warning,
+        "confidence_score": confidence,
+        "confidence_level": confidence_level,
         "matched_rule_id": clean_text(best_rule.get("id")),
         "application_context": clean_text(best_rule.get("application_context"))
         or "Operacao interna - Estado de Sao Paulo",
@@ -870,7 +1110,7 @@ def classify_row(
         "last_updated_at": clean_text(best_rule.get("updated_at")) or clean_text(best_rule.get("created_at")),
         "input_ncm": ncm,
         "matched_ncm": normalize_ncm(best_rule.get("ncm")),
-        "explanation": "",
+        "explanation": explanation,
         "matched_by_ncm_exact": matched_by_ncm_exact,
         "matched_by_ncm_prefix": matched_by_ncm_prefix,
         "keyword_match_count": len(best["includeHits"]),
@@ -879,17 +1119,11 @@ def classify_row(
         "data_origin": clean_text(best_rule.get("data_origin")),
         "normalized_description": normalized_description,
         "matched_keywords": best["includeHits"],
-        "excluded_keywords_hit": [
-            token
-            for entry in excluded_rules
-            for token in (entry["rule"].get("keyword_exclude") or [])
-            if remove_accents(token).lower() in normalized_description
-            or remove_accents(token).lower() in strong_tokens
-        ],
+        "excluded_keywords_hit": excluded_keywords_hit,
         "inferred_macro_group": group_inference["inferred_macro_group"],
         "inferred_subgroup": group_inference["inferred_subgroup"],
         "informed_group": "",
-        "group_consistency_status": "nao_identificado",
+        "group_consistency_status": group_consistency,
         "product_family": clean_text(best_rule.get("product_family")) or classification["product_family"],
         "product_type": clean_text(best_rule.get("product_type")) or classification["product_type"],
         "presentation_type": clean_text(best_rule.get("presentation_type")) or classification["presentation_type"],
@@ -897,13 +1131,8 @@ def classify_row(
         "output_cfop": normalize_cfop(best_rule.get("output_cfop")),
         "output_trib_code": normalize_trib(best_rule.get("output_trib_code")),
         "output_icms_rate": best_rule.get("output_icms_rate"),
-        "decision_reason": clean_text(best_rule.get("decision_reason")),
+        "decision_reason": decision_reason,
     }
-
-    if desc_insufficient:
-        response["confidence_level"] = "low"
-    else:
-        response["confidence_level"] = "medium"
 
     return response
 

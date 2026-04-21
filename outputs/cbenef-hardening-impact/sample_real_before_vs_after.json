@@ -1,0 +1,152 @@
+{
+  "baseline_source": {
+    "before_dir": "C:\\PROJETO CBENEF\\PROJETO CBENEF\\cbenef-finder\\outputs\\cbenef-sample-validation",
+    "after_dir": "C:\\PROJETO CBENEF\\PROJETO CBENEF\\cbenef-finder\\outputs\\cbenef-sample-validation-after-hardening",
+    "before_generated_at": "2026-04-19T14:12:52.098435+00:00",
+    "after_generated_at": "2026-04-21T22:12:02.313339+00:00"
+  },
+  "counts": {
+    "before": {
+      "BATEU": 0,
+      "DIVERGIU": 11,
+      "INCONCLUSIVO": 1
+    },
+    "after": {
+      "BATEU": 0,
+      "DIVERGIU": 11,
+      "INCONCLUSIVO": 1
+    }
+  },
+  "field_metrics": {
+    "before": {
+      "NCM": {
+        "applicable": 12,
+        "matched": 1,
+        "mismatched": 10,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.09090909090909091
+      },
+      "CST": {
+        "applicable": 12,
+        "matched": 2,
+        "mismatched": 9,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.18181818181818182
+      },
+      "%ICMS": {
+        "applicable": 12,
+        "matched": 0,
+        "mismatched": 11,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.0
+      },
+      "CFOP": {
+        "applicable": 12,
+        "matched": 4,
+        "mismatched": 7,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.36363636363636365
+      },
+      "cBenef": {
+        "applicable": 6,
+        "matched": 0,
+        "mismatched": 6,
+        "ignored": 6,
+        "inconclusivo": 0,
+        "compared": 6,
+        "match_rate": 0.0
+      }
+    },
+    "after": {
+      "NCM": {
+        "applicable": 12,
+        "matched": 1,
+        "mismatched": 10,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.09090909090909091
+      },
+      "CST": {
+        "applicable": 12,
+        "matched": 2,
+        "mismatched": 9,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.18181818181818182
+      },
+      "%ICMS": {
+        "applicable": 12,
+        "matched": 0,
+        "mismatched": 11,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.0
+      },
+      "CFOP": {
+        "applicable": 12,
+        "matched": 4,
+        "mismatched": 7,
+        "ignored": 0,
+        "inconclusivo": 1,
+        "compared": 11,
+        "match_rate": 0.36363636363636365
+      },
+      "cBenef": {
+        "applicable": 6,
+        "matched": 0,
+        "mismatched": 6,
+        "ignored": 6,
+        "inconclusivo": 0,
+        "compared": 6,
+        "match_rate": 0.0
+      }
+    }
+  },
+  "low_confidence": {
+    "before": {
+      "low_confidence": 12,
+      "low_confidence_unpromoted": 4,
+      "prefix_promoted": 7,
+      "prefix_low_confidence": 7
+    },
+    "after": {
+      "low_confidence": 12,
+      "low_confidence_unpromoted": 4,
+      "prefix_promoted": 7,
+      "prefix_low_confidence": 7
+    }
+  },
+  "weak_prefix_demotions": {
+    "count": 0,
+    "examples": []
+  },
+  "public_flow_change_detected": false,
+  "after_handler_vs_local_seam": {
+    "sample_count": 12,
+    "same_status_count": 12,
+    "same_scoped_payload_count": 4,
+    "different_items_count": 8,
+    "field_differences": {
+      "NCM": 8,
+      "CST": 8,
+      "%ICMS": 5,
+      "CFOP": 5,
+      "cBenef": 4
+    }
+  },
+  "after_handler_vs_local_seam_verdict": {
+    "verdict": "Reforça a hipótese de distorção pela seam local",
+    "reasoning": "A amostra mostrou divergências recorrentes entre o retorno do handler público e a seam local nos campos do escopo. Antes de tratar base ou regras em massa, vale investigar esse desvio de execução."
+  }
+}
