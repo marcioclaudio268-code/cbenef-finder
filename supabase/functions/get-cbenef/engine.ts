@@ -54,12 +54,14 @@ interface RuleEvidenceSummary {
   strongSignalCount: number;
   weakSignalCount: number;
   semanticSignature: string;
-  meetsPrefixMinimum: boolean;
 }
 
+export type RuleMatchMode = "exact" | "prefix";
+
 export interface SafeRuleSelectionResult {
-  kind: "resolved" | "low_confidence";
+  kind: "resolved" | "low_confidence" | "insufficient_rule";
   winner?: ScoredRule;
+  referenceRule?: ScoredRule;
   confidenceScore?: number;
   explanation?: string;
   decisionReason: string;
@@ -209,61 +211,80 @@ function summarizeEvidence(rule: ScoredRule): RuleEvidenceSummary {
     strongSignalCount,
     weakSignalCount,
     semanticSignature,
-    meetsPrefixMinimum: strongSignalCount > 0 || weakSignalCount >= 2,
   };
 }
 
-function buildLowConfidenceSelection(
-  matchedByNcmPrefix: boolean,
+function buildSelection(
+  kind: "low_confidence" | "insufficient_rule",
+  referenceRule: ScoredRule | undefined,
+  confidenceScore: number,
   decisionReason: string,
   explanation: string,
 ): SafeRuleSelectionResult {
   return {
-    kind: "low_confidence",
-    confidenceScore: matchedByNcmPrefix ? 0.24 : 0.32,
+    kind,
+    referenceRule,
+    confidenceScore,
     decisionReason,
     explanation,
-    legalBasisSummary: matchedByNcmPrefix
-      ? "Regras por prefixo encontradas sem evidencia minima para promover uma regra vencedora."
-      : "Regras concorrentes permaneceram empatadas em sinais semanticos e exigem validacao manual.",
+    legalBasisSummary: referenceRule?.rule.legal_basis_summary ||
+      (kind === "insufficient_rule"
+        ? "Nao ha regra exata suficiente para sustentar resposta segura."
+        : "As regras exatas permaneceram ambiguas e exigem validacao manual."),
   };
 }
 
 export function selectSafeRuleCandidate(
   eligible: ScoredRule[],
-  matchedByNcmPrefix: boolean,
+  matchMode: RuleMatchMode,
 ): SafeRuleSelectionResult {
   const ranked = [...eligible].sort(compareScoredRules);
   const best = ranked[0];
 
   if (!best) {
-    return buildLowConfidenceSelection(
-      matchedByNcmPrefix,
-      "Nenhuma regra elegivel apos o ranking.",
-      "Nao foi possivel identificar uma regra elegivel para a classificacao fiscal.",
+    return buildSelection(
+      matchMode === "prefix" ? "insufficient_rule" : "low_confidence",
+      undefined,
+      matchMode === "prefix" ? 0.12 : 0.28,
+      "Nenhuma regra utilizavel permaneceu apos a triagem.",
+      matchMode === "prefix"
+        ? "Nao existe regra exata ativa para o NCM informado e o contexto por prefixo nao sustentou enquadramento utilizavel."
+        : "As regras exatas encontradas nao permaneceram utilizaveis apos a triagem conservadora.",
+    );
+  }
+
+  if (matchMode === "prefix") {
+    return buildSelection(
+      "insufficient_rule",
+      best,
+      0.18,
+      "Nao ha regra exata ativa para o NCM informado; o prefixo foi mantido apenas como contexto.",
+      "Foram encontradas regras por prefixo de NCM, mas o comparador conservador nao promove prefixo a resposta forte sem correspondencia exata.",
     );
   }
 
   const bestEvidence = summarizeEvidence(best);
-  if (matchedByNcmPrefix && !bestEvidence.meetsPrefixMinimum) {
-    return buildLowConfidenceSelection(
-      true,
-      "Fallback por prefixo sem evidencia semantica minima.",
-      "As regras obtidas por prefixo de NCM nao trouxeram include hit, tipo, apresentacao ou combinacao minima de sinais para uma decisao segura.",
-    );
-  }
-
   const runnerUp = ranked[1];
   if (!runnerUp) return { kind: "resolved", winner: best, decisionReason: best.rule.decision_reason || "" };
 
+  if (bestEvidence.strongSignalCount === 0) {
+    return buildSelection(
+      "low_confidence",
+      best,
+      0.34,
+      "NCM exato encontrado, mas faltou evidencia para diferenciar a regra com seguranca.",
+      "Existem multiplas regras para o mesmo NCM exato e a descricao nao trouxe sinais fortes suficientes para sustentar resposta segura.",
+    );
+  }
+
   const runnerUpEvidence = summarizeEvidence(runnerUp);
   if (bestEvidence.semanticSignature === runnerUpEvidence.semanticSignature) {
-    return buildLowConfidenceSelection(
-      matchedByNcmPrefix,
-      "Empate fraco entre regras com a mesma assinatura semantica.",
-      matchedByNcmPrefix
-        ? "A disputa entre regras vindas do fallback por prefixo permaneceu empatada em sinais semanticos e nao pode ser resolvida com seguranca."
-        : "As regras candidatas permaneceram empatadas em sinais semanticos e nao devem ser resolvidas apenas por prioridade ou ordem de entrada.",
+    return buildSelection(
+      "low_confidence",
+      best,
+      0.36,
+      "Empate entre regras exatas com a mesma assinatura semantica.",
+      "As regras exatas candidatas permaneceram empatadas em sinais semanticos e nao devem ser resolvidas apenas por prioridade ou ordem de entrada.",
     );
   }
 

@@ -63,7 +63,9 @@ interface ClassificationKeywordRow {
   weight: number;
 }
 
-async function loadTaxonomy(supabase: any): Promise<TaxonomyEntry[]> {
+type SupabaseClientLike = ReturnType<typeof createClient>;
+
+async function loadTaxonomy(supabase: SupabaseClientLike): Promise<TaxonomyEntry[]> {
   const { data: groups } = await supabase
     .from("classification_groups")
     .select("id, code, parent_id, level")
@@ -296,6 +298,16 @@ function collectExcludedKeywordHits(
     .flat();
 }
 
+const SAFE_RESPONSE_MIN_CONFIDENCE = 0.75;
+
+function resolveLegalBasisUrl(rule: Pick<CbenefRule, "legal_basis_url" | "legal_url">): string | null {
+  return rule.legal_basis_url || rule.legal_url || null;
+}
+
+function hasRequiredFiscalOutputs(rule: CbenefRule, finalCst: string): boolean {
+  return Boolean(rule.cbenef_code && finalCst && rule.output_cfop && rule.output_icms_rate != null);
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -391,8 +403,8 @@ Deno.serve(async (req) => {
         cst_icms: informedCst || null,
         brand: body.marca || null,
         suggested_cbenef: null,
-        confidence_score: 0,
-        matched_by: "none",
+        confidence_score: 0.05,
+        matched_by: "sem_regra_suficiente",
       });
 
       return jsonResponse(buildLowConfidenceResponse({
@@ -402,9 +414,10 @@ Deno.serve(async (req) => {
         classification,
         groupInference,
         informedGroup,
-        legalBasisSummary: "Nenhuma regra encontrada para o NCM informado.",
-        explanation: "Nao foi possivel encontrar uma regra correspondente para o NCM informado na base atual.",
-        decisionReason: "Nenhuma regra encontrada.",
+        confidenceScore: 0.05,
+        legalBasisSummary: "Nenhuma regra exata ativa foi encontrada para o NCM informado.",
+        explanation: "Nao foi possivel encontrar regra exata ativa nem contexto suficiente para comparar o NCM informado com seguranca.",
+        decisionReason: "Sem regra suficiente para o NCM informado.",
       }));
     }
 
@@ -427,6 +440,8 @@ Deno.serve(async (req) => {
     const excludedKeywordHits = collectExcludedKeywordHits(excludedRules, normalized);
 
     if (eligible.length === 0) {
+      const referenceRule = excludedRules[0]?.rule;
+
       await supabase.from("query_logs").insert({
         ean: body.ean || null,
         description: body.descricao || null,
@@ -434,8 +449,8 @@ Deno.serve(async (req) => {
         cst_icms: informedCst || null,
         brand: body.marca || null,
         suggested_cbenef: null,
-        confidence_score: 0.1,
-        matched_by: "excluded_by_keywords",
+        confidence_score: matchedByNcmExact ? 0.18 : 0.1,
+        matched_by: matchedBy ? `${matchedBy}+excluded_by_keywords` : "excluded_by_keywords",
       });
 
       return jsonResponse(buildLowConfidenceResponse({
@@ -445,18 +460,36 @@ Deno.serve(async (req) => {
         classification,
         groupInference,
         informedGroup,
-        confidenceScore: 0.1,
-        explanation: "As regras encontradas para este NCM foram eliminadas por conflito de palavras-chave com a descricao informada.",
+        confidenceScore: matchedByNcmExact ? 0.18 : 0.1,
+        matchedNcm: referenceRule?.ncm,
+        applicationContext: referenceRule?.application_context,
+        legalBasisName: referenceRule?.legal_basis_name || referenceRule?.legal_basis || "",
+        legalBasisSummary: referenceRule?.legal_basis_summary ||
+          (matchedByNcmExact
+            ? "As regras exatas encontradas nao permaneceram utilizaveis para resposta segura."
+            : "O contexto encontrado por prefixo nao permaneceu utilizavel para resposta segura."),
+        legalBasisUrl: referenceRule ? resolveLegalBasisUrl(referenceRule) : null,
+        dataOrigin: referenceRule?.data_origin || "",
+        explanation: matchedByNcmExact
+          ? "Foram encontradas regras para o NCM exato, mas todas foram descartadas por conflito com a descricao informada."
+          : "O unico contexto encontrado veio de prefixo de NCM e foi descartado por conflito com a descricao informada.",
         excludedKeywordsHit: excludedKeywordHits,
-        decisionReason: "Regras eliminadas por keyword_exclude.",
+        decisionReason: matchedByNcmExact
+          ? "Regras exatas eliminadas por keyword_exclude."
+          : "Contexto por prefixo eliminado por keyword_exclude.",
         matchedByNcmExact,
         matchedByNcmPrefix,
       }));
     }
 
-    const safeSelection = selectSafeRuleCandidate(eligible, matchedByNcmPrefix);
+    const safeSelection = selectSafeRuleCandidate(
+      eligible,
+      matchedByNcmExact ? "exact" : "prefix",
+    );
 
-    if (safeSelection.kind === "low_confidence") {
+    if (safeSelection.kind !== "resolved") {
+      const referenceRule = safeSelection.referenceRule?.rule;
+
       await supabase.from("query_logs").insert({
         ean: body.ean || null,
         description: body.descricao || null,
@@ -465,7 +498,11 @@ Deno.serve(async (req) => {
         brand: body.marca || null,
         suggested_cbenef: null,
         confidence_score: safeSelection.confidenceScore ?? 0.24,
-        matched_by: matchedBy ? `${matchedBy}+selecao_segura` : "selecao_segura",
+        matched_by: matchedBy
+          ? `${matchedBy}+${safeSelection.kind === "insufficient_rule" ? "regra_insuficiente" : "baixa_confianca"}`
+          : safeSelection.kind === "insufficient_rule"
+          ? "regra_insuficiente"
+          : "baixa_confianca",
       });
 
       return jsonResponse(buildLowConfidenceResponse({
@@ -476,12 +513,17 @@ Deno.serve(async (req) => {
         groupInference,
         informedGroup,
         confidenceScore: safeSelection.confidenceScore,
+        matchedNcm: referenceRule?.ncm,
+        applicationContext: referenceRule?.application_context,
+        legalBasisName: referenceRule?.legal_basis_name || referenceRule?.legal_basis || "",
         legalBasisSummary: safeSelection.legalBasisSummary,
+        legalBasisUrl: referenceRule ? resolveLegalBasisUrl(referenceRule) : null,
         explanation: safeSelection.explanation,
         decisionReason: safeSelection.decisionReason,
         matchedByNcmExact,
         matchedByNcmPrefix,
         excludedKeywordsHit: excludedKeywordHits,
+        dataOrigin: referenceRule?.data_origin || "",
       }));
     }
 
@@ -516,37 +558,70 @@ Deno.serve(async (req) => {
       matchedBy += "+cst_sugerido";
     }
 
-    let confidence = 0;
-    if (matchedByNcmExact) confidence += 0.25;
-    else confidence += 0.10;
+    if (!hasRequiredFiscalOutputs(bestRule, finalCst)) {
+      await supabase.from("query_logs").insert({
+        ean: body.ean || null,
+        description: body.descricao || null,
+        ncm,
+        cst_icms: informedCst || null,
+        brand: body.marca || null,
+        suggested_cbenef: null,
+        confidence_score: 0.22,
+        rule_id: bestRule.id,
+        matched_by: matchedBy ? `${matchedBy}+campos_centrais_insuficientes` : "campos_centrais_insuficientes",
+      });
 
-    if (best.productTypeMatch) confidence += 0.25;
-    else if (best.includeHits.length > 0) confidence += 0.15;
+      return jsonResponse(buildLowConfidenceResponse({
+        ncm,
+        informedCst,
+        normalizedDescription: normalized.normalized_description,
+        classification,
+        groupInference,
+        informedGroup,
+        confidenceScore: 0.22,
+        matchedNcm: bestRule.ncm,
+        applicationContext: bestRule.application_context,
+        legalBasisName: bestRule.legal_basis_name || bestRule.legal_basis || "",
+        legalBasisSummary: bestRule.legal_basis_summary ||
+          "A regra exata encontrada nao preencheu os campos centrais necessarios para resposta segura.",
+        legalBasisUrl: resolveLegalBasisUrl(bestRule),
+        explanation:
+          "Existe regra para o NCM exato, mas ela nao sustenta com seguranca os campos centrais do comparador (%ICMS, CST, CFOP e cBenef).",
+        decisionReason: "Regra exata sem campos centrais suficientes para resposta segura.",
+        matchedByNcmExact,
+        matchedByNcmPrefix,
+        excludedKeywordsHit: excludedKeywordHits,
+        dataOrigin: bestRule.data_origin,
+      }));
+    }
 
-    if (best.presentationMatch) confidence += 0.10;
+    let confidence = 0.35;
 
-    if (best.includeHits.length >= 3) confidence += 0.20;
-    else if (best.includeHits.length >= 2) confidence += 0.15;
-    else if (best.includeHits.length >= 1) confidence += 0.10;
+    if (best.productTypeMatch) confidence += 0.20;
+    else if (best.descriptionPatternHits.length > 0) confidence += 0.12;
+    else if (best.includeHits.length > 0) confidence += 0.10;
+
+    if (best.presentationMatch) confidence += 0.08;
+
+    if (best.includeHits.length >= 2) confidence += 0.12;
+    else if (best.includeHits.length === 1) confidence += 0.06;
 
     if (cstSource === "informado") confidence += 0.10;
-    else if (cstSource === "sugerido" && ruleCst) confidence += 0.07;
-    else if (cstSource === "ajustado") confidence += 0.03;
+    else if (cstSource === "sugerido" && ruleCst) confidence += 0.05;
+    else if (cstSource === "ajustado") confidence += 0.02;
 
-    if (bestRule.legal_basis_name && bestRule.legal_basis_summary) confidence += 0.05;
-
-    if (bestRule.priority >= 15) confidence += 0.10;
-    else if (bestRule.priority >= 10) confidence += 0.07;
-    else if (bestRule.priority >= 5) confidence += 0.04;
-
-    if (bestRule.data_origin === "imported") confidence += 0.05;
-    if (best.groupMatch) confidence += 0.05;
-    if (groupConsistency === "coerente") confidence += 0.03;
+    if (bestRule.legal_basis_name || bestRule.legal_basis_summary || bestRule.legal_basis) confidence += 0.05;
+    if (best.groupMatch) confidence += 0.03;
+    if (groupConsistency === "coerente") confidence += 0.02;
 
     if (descriptionInsufficient) {
-      confidence = Math.min(confidence, 0.55);
+      confidence = Math.min(confidence, 0.59);
       cstWarning = (cstWarning ? `${cstWarning} ` : "") +
         "A descricao informada e insuficiente para diferenciar corretamente o tipo fiscal do item. Informe uma descricao mais especifica.";
+    }
+
+    if (!best.productTypeMatch && best.includeHits.length === 0 && best.descriptionPatternHits.length === 0) {
+      confidence = Math.min(confidence, 0.64);
     }
 
     if (groupConsistency === "divergente") {
@@ -568,20 +643,55 @@ Deno.serve(async (req) => {
     confidence = Math.max(0, Math.min(confidence, 1));
     confidence = Math.round(confidence * 100) / 100;
 
-    const confidenceLevel = confidence >= 0.85 ? "high" : confidence >= 0.65 ? "medium" : "low";
-
     const decisionReason = bestRule.decision_reason ||
       (best.productTypeMatch
-        ? `Produto identificado como "${classification.product_type}" pela descricao normalizada, compativel com a regra.`
-        : "Regra selecionada por aderencia de palavras-chave e prioridade.");
+        ? `NCM exato confirmado com descricao compativel para "${classification.product_type}".`
+        : "Regra exata mantida apenas pelos sinais suficientes do comparador conservador.");
+
+    if (confidence < SAFE_RESPONSE_MIN_CONFIDENCE) {
+      await supabase.from("query_logs").insert({
+        ean: body.ean || null,
+        description: body.descricao || null,
+        ncm,
+        cst_icms: informedCst || finalCst,
+        brand: body.marca || null,
+        suggested_cbenef: null,
+        confidence_score: confidence,
+        rule_id: bestRule.id,
+        matched_by: matchedBy ? `${matchedBy}+baixa_confianca` : "baixa_confianca",
+      });
+
+      return jsonResponse(buildLowConfidenceResponse({
+        ncm,
+        informedCst,
+        normalizedDescription: normalized.normalized_description,
+        classification,
+        groupInference,
+        informedGroup,
+        confidenceScore: confidence,
+        matchedNcm: bestRule.ncm,
+        applicationContext: bestRule.application_context,
+        legalBasisName: bestRule.legal_basis_name || bestRule.legal_basis || "",
+        legalBasisSummary: bestRule.legal_basis_summary ||
+          "O NCM exato foi localizado, mas a regra nao alcancou sustentacao suficiente para resposta segura.",
+        legalBasisUrl: resolveLegalBasisUrl(bestRule),
+        explanation:
+          "O NCM exato foi localizado, mas a combinacao de descricao, CST e sinais auxiliares nao permite promover esta regra como resposta segura.",
+        decisionReason: "NCM exato encontrado, mas sem sustentacao suficiente para resposta forte.",
+        matchedByNcmExact,
+        matchedByNcmPrefix,
+        excludedKeywordsHit: excludedKeywordHits,
+        dataOrigin: bestRule.data_origin,
+      }));
+    }
+
+    const confidenceLevel = confidence >= 0.85 ? "high" : "medium";
 
     let explanation = "";
     if (confidenceLevel === "high") {
-      explanation = `Classificacao com alta confianca. ${decisionReason}`;
-    } else if (confidenceLevel === "medium") {
-      explanation = `Classificacao com confianca media. ${decisionReason} Recomenda-se validacao.`;
+      explanation = `Resposta segura baseada em NCM exato. ${decisionReason}`;
     } else {
-      explanation = `Confianca insuficiente para classificacao segura. ${decisionReason}`;
+      explanation = `Resposta conservadora baseada em NCM exato, com validacao complementar recomendada. ${decisionReason}`;
     }
 
     let ruleVersion: CbenefRuleVersion | null = null;

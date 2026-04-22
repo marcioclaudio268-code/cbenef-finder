@@ -101,13 +101,13 @@ describe("get-cbenef safe fallback selection", () => {
   it("keeps an exact match eligible even without prefix evidence", () => {
     const selection = selectSafeRuleCandidate([
       scoreCandidate({ id: "rule-exact-1", priority: 3 }, GENERIC_CONTEXT),
-    ], false);
+    ], "exact");
 
     expect(selection.kind).toBe("resolved");
     expect(selection.winner?.rule.id).toBe("rule-exact-1");
   });
 
-  it("allows prefix fallback when there is real evidence", () => {
+  it("keeps prefix matches only as contextual support, even when they look semantically strong", () => {
     const selection = selectSafeRuleCandidate([
       scoreCandidate({
         id: "rule-prefix-strong",
@@ -124,27 +124,29 @@ describe("get-cbenef safe fallback selection", () => {
         macro_group: "laticinios",
         priority: 1,
       }),
-    ], true);
+    ], "prefix");
 
-    expect(selection.kind).toBe("resolved");
-    expect(selection.winner?.rule.id).toBe("rule-prefix-strong");
+    expect(selection.kind).toBe("insufficient_rule");
+    expect(selection.winner).toBeUndefined();
+    expect(selection.referenceRule?.rule.id).toBe("rule-prefix-strong");
+    expect(selection.decisionReason).toContain("Nao ha regra exata ativa");
   });
 
-  it("drops prefix fallback to low confidence when semantic evidence is missing", () => {
+  it("treats weak prefix-only context as insufficient rule instead of a strong fallback", () => {
     const selection = selectSafeRuleCandidate([
       scoreCandidate({
         id: "rule-prefix-fragil",
         priority: 20,
         data_origin: "imported",
       }, GENERIC_CONTEXT),
-    ], true);
+    ], "prefix");
 
-    expect(selection.kind).toBe("low_confidence");
+    expect(selection.kind).toBe("insufficient_rule");
     expect(selection.winner).toBeUndefined();
-    expect(selection.decisionReason).toContain("Fallback por prefixo");
+    expect(selection.decisionReason).toContain("prefixo");
   });
 
-  it("treats a weak tie as low confidence instead of using priority as the tiebreaker", () => {
+  it("treats a weak tie on exact NCM as low confidence instead of using priority as the tiebreaker", () => {
     const selection = selectSafeRuleCandidate([
       scoreCandidate({
         id: "rule-tie-high-priority",
@@ -156,10 +158,30 @@ describe("get-cbenef safe fallback selection", () => {
         keyword_include: ["queijo"],
         priority: 1,
       }),
-    ], true);
+    ], "exact");
 
     expect(selection.kind).toBe("low_confidence");
     expect(selection.winner).toBeUndefined();
-    expect(selection.decisionReason).toContain("Empate fraco");
+    expect(selection.referenceRule?.rule.id).toBe("rule-tie-high-priority");
+    expect(selection.decisionReason).toContain("Empate");
+  });
+
+  it("downgrades multiple exact rules to low confidence when the exact NCM lacks strong differentiating evidence", () => {
+    const selection = selectSafeRuleCandidate([
+      scoreCandidate({
+        id: "rule-exact-weak-1",
+        macro_group: "laticinios",
+        priority: 20,
+      }, GENERIC_CONTEXT),
+      scoreCandidate({
+        id: "rule-exact-weak-2",
+        priority: 1,
+      }, GENERIC_CONTEXT),
+    ], "exact");
+
+    expect(selection.kind).toBe("low_confidence");
+    expect(selection.winner).toBeUndefined();
+    expect(selection.referenceRule?.rule.id).toBe("rule-exact-weak-1");
+    expect(selection.decisionReason).toContain("faltou evidencia");
   });
 });

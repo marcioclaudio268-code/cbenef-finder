@@ -175,19 +175,24 @@ describe("get-cbenef public response contract", () => {
           inferred_subgroup: "",
         },
         informedGroup: null,
-        confidenceScore: 0.31,
-        legalBasisSummary: "Nenhuma regra suficientemente confiavel para o NCM informado.",
-        explanation: "A descricao nao trouxe sinais suficientes para uma classificacao segura.",
-        decisionReason: "Descricao insuficiente para diferenciar o cadastro fiscal.",
+        confidenceScore: 0.18,
+        matchedNcm: "04061000",
+        applicationContext: "Operacao interna - Estado de Sao Paulo",
+        legalBasisName: "RICMS/SP",
+        legalBasisSummary: "Existe apenas contexto por prefixo, sem regra exata suficiente para resposta segura.",
+        legalBasisUrl: "https://example.com/contexto-prefixo",
+        explanation: "O prefixo do NCM sugere possivel enquadramento, mas nao sustenta resposta forte sem correspondencia exata.",
+        decisionReason: "Prefixo mantido apenas como contexto conservador.",
         matchedByNcmExact: false,
         matchedByNcmPrefix: true,
         excludedKeywordsHit: ["teste"],
         lastUpdatedAt: "2026-04-13T12:00:00.000Z",
+        dataOrigin: "imported",
       }),
     );
 
     expect(result.confidence_level).toBe("low");
-    expect(result.confidence_score).toBe(0.31);
+    expect(result.confidence_score).toBe(0.18);
     expect(result.cbenef_code).toBe("");
     expect(result.final_cst_icms).toBe("");
     expect(result.output_cfop).toBe("");
@@ -196,7 +201,11 @@ describe("get-cbenef public response contract", () => {
     expect(result.output_st_applicable).toBeNull();
     expect(result.rule_version).toBeNull();
     expect(result.last_updated_at).toBe("2026-04-13T12:00:00.000Z");
-    expect(result.application_context).toBe(DEFAULT_APPLICATION_CONTEXT);
+    expect(result.application_context).toBe("Operacao interna - Estado de Sao Paulo");
+    expect(result.legal_basis_name).toBe("RICMS/SP");
+    expect(result.legal_basis_url).toBe("https://example.com/contexto-prefixo");
+    expect(result.matched_ncm).toBe("04061000");
+    expect(result.data_origin).toBe("imported");
   });
 
   it("keeps the shared frontend contract intact after API-style JSON serialization", () => {

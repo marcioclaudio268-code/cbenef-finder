@@ -27,13 +27,18 @@ export interface LowConfidenceResponseInput {
   groupInference: GroupInference;
   informedGroup: string | null;
   confidenceScore?: number;
+  matchedNcm?: string;
+  applicationContext?: string | null;
+  legalBasisName?: string | null;
   legalBasisSummary?: string;
+  legalBasisUrl?: string | null;
   explanation?: string;
   decisionReason?: string;
   matchedByNcmExact?: boolean;
   matchedByNcmPrefix?: boolean;
   excludedKeywordsHit?: string[];
   lastUpdatedAt?: string;
+  dataOrigin?: string;
 }
 
 export interface ResolvedRuleForResponse {
@@ -96,21 +101,21 @@ export function buildLowConfidenceResponse(input: LowConfidenceResponseInput): C
     confidence_score: input.confidenceScore ?? 0,
     confidence_level: "low",
     matched_rule_id: null,
-    application_context: DEFAULT_APPLICATION_CONTEXT,
-    legal_basis_name: "",
+    application_context: input.applicationContext || DEFAULT_APPLICATION_CONTEXT,
+    legal_basis_name: input.legalBasisName || "",
     legal_basis_summary: input.legalBasisSummary ?? "",
-    legal_basis_url: null,
+    legal_basis_url: input.legalBasisUrl ?? null,
     rule_version: null,
     last_updated_at: input.lastUpdatedAt ?? new Date().toISOString(),
     input_ncm: input.ncm,
-    matched_ncm: "",
+    matched_ncm: input.matchedNcm ?? "",
     explanation: input.explanation ?? "",
     matched_by_ncm_exact: input.matchedByNcmExact ?? false,
     matched_by_ncm_prefix: input.matchedByNcmPrefix ?? false,
     keyword_match_count: 0,
     used_informed_cst: false,
     auto_suggested_cst: false,
-    data_origin: "",
+    data_origin: input.dataOrigin ?? "",
     normalized_description: input.normalizedDescription,
     matched_keywords: [],
     excluded_keywords_hit: input.excludedKeywordsHit ?? [],
