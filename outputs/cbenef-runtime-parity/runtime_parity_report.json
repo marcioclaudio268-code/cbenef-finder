@@ -1,0 +1,125 @@
+{
+  "generated_at": "2026-04-22T22:11:56.345Z",
+  "source_commit": "23105ef01c6c6d3c928f6d2cd947047daaafb275",
+  "source": {
+    "base_url": "https://gquohrcdfcsbinucwjxb.supabase.co",
+    "endpoint": "https://gquohrcdfcsbinucwjxb.supabase.co/functions/v1/get-cbenef",
+    "cases": 2
+  },
+  "runtime_inspection": {
+    "public_response_headers": {
+      "server": "cloudflare",
+      "date": "Wed, 22 Apr 2026 22:11:49 GMT",
+      "content-type": "application/json",
+      "cf-ray": "9f07f76568a05402-GRU",
+      "cf-cache-status": "DYNAMIC",
+      "sb-project-ref": "gquohrcdfcsbinucwjxb",
+      "sb-gateway-version": "1",
+      "sb-request-id": "019db73f-db67-7522-912e-ce8c2b4ecb2f",
+      "x-deno-execution-id": "36594e20-2ff9-4ae0-9979-173a87269ac1",
+      "x-sb-edge-region": "sa-east-1",
+      "x-served-by": "supabase-edge-runtime",
+      "endpoint-load-metrics": "application_utilization:9,named_metrics.queue_depth:9"
+    },
+    "direct_version_header": null,
+    "direct_version_value": null,
+    "note": "Nenhum identificador de commit/versao foi exposto no header publico observado."
+  },
+  "cases": [
+    {
+      "sample_id": "C01",
+      "request": {
+        "sample_id": "C01",
+        "descricao": "OSSO BUCO KG",
+        "ncm": "02011000"
+      },
+      "current_code_expectation": {
+        "exact_rule_count": 0,
+        "prefix_rule_count": 1,
+        "path": "prefixo_apenas_contexto",
+        "expected_kind": "insufficient_rule",
+        "expected_matched_rule_id": null,
+        "expected_cbenef_code": "",
+        "expected_final_cst_icms": "",
+        "expected_output_cfop": "",
+        "expected_output_icms_rate": null,
+        "expected_confidence_level": "low",
+        "expected_matched_by_ncm_exact": false,
+        "expected_matched_by_ncm_prefix": true,
+        "expected_decision_reason": "Nao ha regra exata ativa para o NCM informado; o prefixo foi mantido apenas como contexto.",
+        "expected_explanation": "Foram encontradas regras por prefixo de NCM, mas o comparador conservador nao promove prefixo a resposta forte sem correspondencia exata.",
+        "note": "O NCM 02011000 encontra apenas cobertura por prefixo; o codigo atual deve manter baixa confianca, nao promover regra."
+      },
+      "public_response": {
+        "cbenef_code": "SP000100",
+        "final_cst_icms": "000",
+        "output_cfop": "5102",
+        "output_icms_rate": 7,
+        "confidence_level": "low",
+        "matched_rule_id": "20c26676-eaa6-4953-89e0-ca233f044c85",
+        "matched_by_ncm_exact": false,
+        "matched_by_ncm_prefix": true,
+        "decision_reason": "Carne bovina desossada — isenção cesta básica SP",
+        "explanation": "Confiança insuficiente para classificação segura. Carne bovina desossada — isenção cesta básica SP",
+        "matched_ncm": "02013000"
+      },
+      "comparison": {
+        "aligned": false,
+        "local_should_promote": false,
+        "public_promoted": true,
+        "divergences": [
+          "public_promoted_rule",
+          "public_matched_rule_id_non_null"
+        ]
+      }
+    },
+    {
+      "sample_id": "L02",
+      "request": {
+        "sample_id": "L02",
+        "descricao": "CHAMYTO ESCUDO GENIAL 130 GR",
+        "ncm": "04032000"
+      },
+      "current_code_expectation": {
+        "exact_rule_count": 0,
+        "prefix_rule_count": 6,
+        "path": "prefixo_apenas_contexto",
+        "expected_kind": "insufficient_rule",
+        "expected_matched_rule_id": null,
+        "expected_cbenef_code": "",
+        "expected_final_cst_icms": "",
+        "expected_output_cfop": "",
+        "expected_output_icms_rate": null,
+        "expected_confidence_level": "low",
+        "expected_matched_by_ncm_exact": false,
+        "expected_matched_by_ncm_prefix": true,
+        "expected_decision_reason": "Nao ha regra exata ativa para o NCM informado; o prefixo foi mantido apenas como contexto.",
+        "expected_explanation": "Foram encontradas regras por prefixo de NCM, mas o comparador conservador nao promove prefixo a resposta forte sem correspondencia exata.",
+        "note": "O NCM 04032000 encontra apenas cobertura por prefixo; o codigo atual deve manter baixa confianca, nao promover regra."
+      },
+      "public_response": {
+        "cbenef_code": "SP810100",
+        "final_cst_icms": "060",
+        "output_cfop": "5405",
+        "output_icms_rate": 12,
+        "confidence_level": "low",
+        "matched_rule_id": "e693f8e6-d756-4885-9688-da425c177bd8",
+        "matched_by_ncm_exact": false,
+        "matched_by_ncm_prefix": true,
+        "decision_reason": "Produto classificado como manteiga pela descrição normalizada. Sujeito a substituição tributária em SP.",
+        "explanation": "Confiança insuficiente para classificação segura. Produto classificado como manteiga pela descrição normalizada. Sujeito a substituição tributária em SP.",
+        "matched_ncm": "04051000"
+      },
+      "comparison": {
+        "aligned": false,
+        "local_should_promote": false,
+        "public_promoted": true,
+        "divergences": [
+          "public_promoted_rule",
+          "public_matched_rule_id_non_null"
+        ]
+      }
+    }
+  ],
+  "conclusion": "desalinhado"
+}
