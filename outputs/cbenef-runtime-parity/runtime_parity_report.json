@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-22T22:11:56.345Z",
+  "generated_at": "2026-04-22T22:52:51.133Z",
   "source_commit": "23105ef01c6c6d3c928f6d2cd947047daaafb275",
   "source": {
     "base_url": "https://gquohrcdfcsbinucwjxb.supabase.co",
@@ -9,17 +9,17 @@
   "runtime_inspection": {
     "public_response_headers": {
       "server": "cloudflare",
-      "date": "Wed, 22 Apr 2026 22:11:49 GMT",
+      "date": "Wed, 22 Apr 2026 22:52:45 GMT",
       "content-type": "application/json",
-      "cf-ray": "9f07f76568a05402-GRU",
+      "cf-ray": "9f0833557d5dc50d-GRU",
       "cf-cache-status": "DYNAMIC",
       "sb-project-ref": "gquohrcdfcsbinucwjxb",
       "sb-gateway-version": "1",
-      "sb-request-id": "019db73f-db67-7522-912e-ce8c2b4ecb2f",
-      "x-deno-execution-id": "36594e20-2ff9-4ae0-9979-173a87269ac1",
+      "sb-request-id": "019db765-5173-7831-9227-0e58b09ee8f1",
+      "x-deno-execution-id": "c418519f-4079-4e49-b567-9384c6229828",
       "x-sb-edge-region": "sa-east-1",
       "x-served-by": "supabase-edge-runtime",
-      "endpoint-load-metrics": "application_utilization:9,named_metrics.queue_depth:9"
+      "endpoint-load-metrics": "application_utilization:16,named_metrics.queue_depth:16"
     },
     "direct_version_header": null,
     "direct_version_value": null,
