@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 
-HARDEN_COMMIT = "639b909daf5f5cc1c5eec26f27e5f69c5fb24b95"
+HARDEN_COMMIT = "23105ef01c6c6d3c928f6d2cd947047daaafb275"
 WORKBOOK_PATH = Path(r"C:/Users/thatf/Downloads/cbenef_finder_base_validacao_enxuta.xlsx")
 WORKBOOK_SHEET = "Base_Validacao"
 BEFORE_SAMPLE_DIR = Path("outputs/cbenef-sample-validation")

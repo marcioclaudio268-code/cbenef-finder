@@ -17,10 +17,10 @@
 | cBenef | 0.00% | 0.00% | +0.00% |
 
 ## Baixa Confianca no Replay Isolado
-- Antes: 4235 casos em baixa confianca.
+- Antes: 7400 casos em baixa confianca.
 - Depois: 7400 casos em baixa confianca.
-- Antes: 4154 respostas baixas e nao promovidas.
+- Antes: 7024 respostas baixas e nao promovidas.
 - Depois: 7024 respostas baixas e nao promovidas.
-- Promocoes por prefixo antes: 2752.
+- Promocoes por prefixo antes: 249.
 - Promocoes por prefixo depois: 249.
-- Prefixos fracos despromovidos: 2503.
+- Prefixos fracos despromovidos: 0.

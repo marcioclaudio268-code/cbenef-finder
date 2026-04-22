@@ -3,8 +3,8 @@
     "historical_before_dir": "C:\\PROJETO CBENEF\\PROJETO CBENEF\\cbenef-finder\\outputs\\cbenef-validation",
     "historical_after_dir": "C:\\PROJETO CBENEF\\PROJETO CBENEF\\cbenef-finder\\outputs\\cbenef-validation-after-hardening",
     "historical_before_generated_at": "2026-04-19T00:52:07.272900+00:00",
-    "historical_after_generated_at": "2026-04-21T22:11:50.737490+00:00",
-    "replayed_before_ref": "639b909daf5f5cc1c5eec26f27e5f69c5fb24b95^",
+    "historical_after_generated_at": "2026-04-22T21:45:04.020493+00:00",
+    "replayed_before_ref": "23105ef01c6c6d3c928f6d2cd947047daaafb275^",
     "replayed_after_ref": "working_tree",
     "supabase_snapshot": "C:\\PROJETO CBENEF\\PROJETO CBENEF\\cbenef-finder\\outputs\\cbenef-validation-after-hardening\\supabase_tables.json"
   },
@@ -150,39 +150,39 @@
     "before": {
       "NCM": {
         "applicable": 7550,
-        "matched": 644,
-        "mismatched": 6898,
+        "matched": 277,
+        "mismatched": 7265,
         "ignored": 0,
         "inconclusivo": 8,
         "compared": 7542,
-        "match_rate": 0.08538849111641475
+        "match_rate": 0.03672765844603553
       },
       "CST": {
         "applicable": 7550,
-        "matched": 518,
-        "mismatched": 7024,
+        "matched": 199,
+        "mismatched": 7343,
         "ignored": 0,
         "inconclusivo": 8,
         "compared": 7542,
-        "match_rate": 0.0686820472023336
+        "match_rate": 0.026385574118271016
       },
       "%ICMS": {
         "applicable": 7550,
-        "matched": 170,
-        "mismatched": 7372,
+        "matched": 56,
+        "mismatched": 7486,
         "ignored": 0,
         "inconclusivo": 8,
         "compared": 7542,
-        "match_rate": 0.022540440201538052
+        "match_rate": 0.007425086184036065
       },
       "CFOP": {
         "applicable": 7550,
-        "matched": 552,
-        "mismatched": 6990,
+        "matched": 334,
+        "mismatched": 7208,
         "ignored": 0,
         "inconclusivo": 8,
         "compared": 7542,
-        "match_rate": 0.07319013524264122
+        "match_rate": 0.04428533545478653
       },
       "cBenef": {
         "applicable": 659,
@@ -244,10 +244,10 @@
   },
   "replayed_low_confidence": {
     "before": {
-      "low_confidence": 4235,
-      "low_confidence_unpromoted": 4154,
-      "prefix_promoted": 2752,
-      "prefix_low_confidence": 57
+      "low_confidence": 7400,
+      "low_confidence_unpromoted": 7024,
+      "prefix_promoted": 249,
+      "prefix_low_confidence": 2663
     },
     "after": {
       "low_confidence": 7400,
@@ -257,258 +257,7 @@
     }
   },
   "weak_prefix_demotions": {
-    "count": 2503,
-    "examples": [
-      {
-        "source_row": 2,
-        "codigo": "151",
-        "descricao": "OSSO BUCO KG",
-        "ncm": "02011000",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02011000 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02011000 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 3,
-        "codigo": "1076",
-        "descricao": "DIANTEIRO BOI",
-        "ncm": "02012010",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02012010 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02012010 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 4,
-        "codigo": "5",
-        "descricao": "MIOLO PALETA KG",
-        "ncm": "02012010",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02012010 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02012010 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 5,
-        "codigo": "1021",
-        "descricao": "TRASEIRO BOI",
-        "ncm": "02012020",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02012020 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02012020 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 7,
-        "codigo": "909",
-        "descricao": "PONTA DE AGULHA BOV RESFR KG",
-        "ncm": "02012090",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02012090 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02012090 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 8,
-        "codigo": "28",
-        "descricao": "PONTA PEITO C OSSO",
-        "ncm": "02012090",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02012090 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02012090 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 43,
-        "codigo": "1106",
-        "descricao": "CARCACA SUINO KG",
-        "ncm": "02031100",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02031100 vs retornado 02031900; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 12; cBenef esperado SP020740 vs retornado SP000200",
-        "after_reason": "NCM esperado 02031100 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 56,
-        "codigo": "78",
-        "descricao": "LINGUA BOVINA KG",
-        "ncm": "02062100",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062100 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062100 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 57,
-        "codigo": "7896620621991",
-        "descricao": "FIGADO BOVINO KG",
-        "ncm": "02062200",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062200 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062200 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 58,
-        "codigo": "31",
-        "descricao": "FIGADO BOVINO KG",
-        "ncm": "02062200",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062200 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062200 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 59,
-        "codigo": "75",
-        "descricao": "RABADA KG",
-        "ncm": "02062910",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062910 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062910 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 60,
-        "codigo": "30",
-        "descricao": "BUCHO BOVINO KG",
-        "ncm": "02062990",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062990 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062990 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 61,
-        "codigo": "149",
-        "descricao": "GARRAO KG",
-        "ncm": "02062990",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02062990 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02062990 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 63,
-        "codigo": "970",
-        "descricao": "FRESSURA SUINA KG",
-        "ncm": "02063000",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02063000 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02063000 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 64,
-        "codigo": "3422",
-        "descricao": "TRIPA SALGADA SUINO ESPANHOLA 30 32",
-        "ncm": "02063000",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02063000 vs retornado 02031900; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 12; cBenef esperado SP020740 vs retornado SP000200",
-        "after_reason": "NCM esperado 02063000 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 67,
-        "codigo": "761",
-        "descricao": "CHESTER PERDIGAO KG",
-        "ncm": "02071210",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02071210 vs retornado 02071400; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 0; cBenef esperado SP020740 vs retornado SP000300",
-        "after_reason": "NCM esperado 02071210 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 123,
-        "codigo": "96",
-        "descricao": "JOELHO SUINO KG",
-        "ncm": "02101100",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02101100 vs retornado 02031900; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 12; cBenef esperado SP020740 vs retornado SP000200",
-        "after_reason": "NCM esperado 02101100 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 124,
-        "codigo": "69",
-        "descricao": "MOCOTO KG",
-        "ncm": "02101100",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02101100 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02101100 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 129,
-        "codigo": "92",
-        "descricao": "PE SUINO KG",
-        "ncm": "02101900",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02101900 vs retornado 02031900; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 12; cBenef esperado SP020740 vs retornado SP000200",
-        "after_reason": "NCM esperado 02101900 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 131,
-        "codigo": "7898386720277",
-        "descricao": "JERBED BEEF TRASEIRO FRIGOL 500 GR",
-        "ncm": "02102000",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02102000 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02102000 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 132,
-        "codigo": "7898386720024",
-        "descricao": "JERKED BEEF DIANTEIRO FRIGOL 500 GR",
-        "ncm": "02102000",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 02102000 vs retornado 02013000; CST esperado 020 vs retornado 000; %ICMS esperado 11 vs retornado 7; cBenef esperado SP020740 vs retornado SP000100",
-        "after_reason": "NCM esperado 02102000 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 11 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020740 vs retornado [vazio]"
-      },
-      {
-        "source_row": 133,
-        "codigo": "67",
-        "descricao": "SARDINHA INTEIRA EVISCERADA KG",
-        "ncm": "03035300",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 03035300 vs retornado 03034200; CST esperado 020 vs retornado 060; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado SP000301",
-        "after_reason": "NCM esperado 03035300 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado [vazio]"
-      },
-      {
-        "source_row": 134,
-        "codigo": "136",
-        "descricao": "CAVALINHA INTEIRA CONGELADA KG",
-        "ncm": "03035400",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 03035400 vs retornado 03034200; CST esperado 020 vs retornado 060; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado SP000301",
-        "after_reason": "NCM esperado 03035400 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado [vazio]"
-      },
-      {
-        "source_row": 135,
-        "codigo": "7897904045441",
-        "descricao": "PEIXE DOURADA EM POSTA PCT 800 GR",
-        "ncm": "03038990",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 03038990 vs retornado 03034200; CST esperado 020 vs retornado 060; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado SP000301",
-        "after_reason": "NCM esperado 03038990 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado [vazio]"
-      },
-      {
-        "source_row": 136,
-        "codigo": "165",
-        "descricao": "POSTA PIRAMUTABA KG",
-        "ncm": "03038990",
-        "before_status": "DIVERGIU",
-        "after_status": "DIVERGIU",
-        "before_reason": "NCM esperado 03038990 vs retornado 03034200; CST esperado 020 vs retornado 060; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado SP000301",
-        "after_reason": "NCM esperado 03038990 vs retornado [vazio]; CST esperado 020 vs retornado [vazio]; %ICMS esperado 7 vs retornado [vazio]; CFOP esperado 5102 vs retornado [vazio]; cBenef esperado SP020030 vs retornado [vazio]"
-      }
-    ]
+    "count": 0,
+    "examples": []
   }
 }
