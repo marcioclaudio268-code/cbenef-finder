@@ -24,3 +24,8 @@ scripts/__pycache__/
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de ambiente — NUNCA commitar
+.env
+.env.*
+!.env.example
